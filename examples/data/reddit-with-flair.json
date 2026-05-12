@@ -1,0 +1,10 @@
+{
+  "REDDIT": {
+    "sr": "r/test",
+    "text": "How we cut our publish error rate to under 2%",
+    "description": "Long-form writeup with the architecture and the numbers.\n\nhttps://bundle.social",
+    "flairId": "REPLACE_WITH_FLAIR_ID",
+    "nsfw": false,
+    "uploadIds": []
+  }
+}

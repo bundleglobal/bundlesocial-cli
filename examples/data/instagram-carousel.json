@@ -1,0 +1,12 @@
+{
+  "INSTAGRAM": {
+    "type": "POST",
+    "text": "Three things we shipped this week 👇\n\n#changelog #buildinpublic",
+    "carouselItems": [
+      { "uploadId": "REPLACE_WITH_UPLOAD_ID_1", "altText": "Feature one screenshot" },
+      { "uploadId": "REPLACE_WITH_UPLOAD_ID_2", "altText": "Feature two screenshot" },
+      { "uploadId": "REPLACE_WITH_UPLOAD_ID_3", "altText": "Feature three screenshot" }
+    ],
+    "autoFitImage": true
+  }
+}

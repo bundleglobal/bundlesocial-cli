@@ -1,0 +1,11 @@
+{
+  "YOUTUBE": {
+    "type": "SHORT",
+    "uploadIds": ["REPLACE_WITH_VIDEO_UPLOAD_ID"],
+    "text": "Launch week — behind the scenes #Shorts",
+    "description": "A quick look at how we shipped launch week.\n\nMore: https://bundle.social",
+    "privacy": "PUBLIC",
+    "madeForKids": false,
+    "containsSyntheticMedia": false
+  }
+}

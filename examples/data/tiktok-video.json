@@ -1,0 +1,11 @@
+{
+  "TIKTOK": {
+    "type": "VIDEO",
+    "text": "Behind the scenes of launch week 🎬 #buildinpublic",
+    "uploadIds": ["REPLACE_WITH_VIDEO_UPLOAD_ID"],
+    "privacy": "PUBLIC_TO_EVERYONE",
+    "disableStitch": false,
+    "isAiGenerated": false,
+    "thumbnailOffset": 1500
+  }
+}

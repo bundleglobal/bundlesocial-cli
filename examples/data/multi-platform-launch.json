@@ -1,0 +1,17 @@
+{
+  "TWITTER": {
+    "text": "We just shipped dark mode 🌙\n\nAvailable now for everyone.",
+    "replySettings": "EVERYONE"
+  },
+  "LINKEDIN": {
+    "text": "We just shipped dark mode.\n\nIt was the #1 request — and it's live for everyone today. Here's what changed and why it took us a while: https://bundle.social/blog",
+    "privacy": "PUBLIC"
+  },
+  "BLUESKY": {
+    "text": "We just shipped dark mode 🌙 — live for everyone now.",
+    "tags": ["buildinpublic"]
+  },
+  "THREADS": {
+    "text": "We just shipped dark mode 🌙 — live for everyone now."
+  }
+}

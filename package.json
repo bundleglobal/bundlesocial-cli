@@ -1,0 +1,61 @@
+{
+  "name": "bundlesocial-cli",
+  "version": "1.0.0",
+  "description": "Command-line interface for the bundle.social social-media API — agent-friendly, JSON-by-default.",
+  "keywords": [
+    "bundle.social",
+    "bundlesocial",
+    "cli",
+    "social media",
+    "api",
+    "agents",
+    "automation",
+    "scheduler"
+  ],
+  "author": "bundle.global",
+  "license": "MIT",
+  "homepage": "https://github.com/bundleglobal/bundlesocial-cli#readme",
+  "bugs": {
+    "url": "https://github.com/bundleglobal/bundlesocial-cli/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bundleglobal/bundlesocial-cli.git"
+  },
+  "type": "module",
+  "bin": {
+    "bundle-social": "./dist/index.js"
+  },
+  "files": [
+    "dist/**",
+    "SKILL.md",
+    "PROVIDER_SETTINGS.md",
+    "examples/**",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "bundlesocial": "^2.47.0",
+    "chalk": "^5.3.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}
