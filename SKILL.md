@@ -66,7 +66,7 @@ All commands accept the global flags `--api-key <key>`, `--api-url <url>`, `--te
 | `posts:csv --file <path>` | Upload a CSV for an async bulk post import. |
 | `posts:csv:list [--limit <n>] [--offset <n>]` / `posts:csv:get <importId>` / `posts:csv:status <importId>` / `posts:csv:rows <importId> [--status SUCCESS\|FAILED]` | Track a CSV bulk import. |
 | `comments:create --post-id <id> -c "..." [-c "..." ...]` | Comment on a post; repeat `-c` for a chain of replies (X-style thread via comments). Comment-capable platforms: TIKTOK, YOUTUBE, INSTAGRAM, FACEBOOK, THREADS, LINKEDIN, REDDIT, MASTODON, DISCORD, SLACK, BLUESKY. Optional `--date`, `--delay <minutes>`, `--draft`, `-i`/`-p` (defaults to the post's platforms). |
-| `comments:list [--post-id <id>]` / `comments:get <id>` / `comments:delete <id>` | List/fetch/delete comments. |
+| `comments:list [--post-id <id>]` / `comments:get <id>` / `comments:update <id>` / `comments:delete <id>` | List/fetch/update/delete comments. `comments:update` mirrors `posts:update` — only the fields you pass change. |
 | `comments:import --post-id <id> -p <platform>` | Start an async import of a post's comments. Platforms: FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, TIKTOK, REDDIT, THREADS, MASTODON, BLUESKY. |
 | `comments:imports [--post-id <id>] [--status <s>]` / `comments:import:get <importId>` | List comment-import jobs / fetch one. |
 | `comments:import:comments --post-id <id> [-p <platform>] [--social-account-id <id>]` | List the comments fetched for a post via `comments:import`. |

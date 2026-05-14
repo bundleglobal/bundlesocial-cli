@@ -5,12 +5,15 @@ import type {
   CommentImportCreateData,
   CommentImportGetFetchedCommentsData,
   CommentImportGetListData,
+  CommentUpdateData,
 } from "bundlesocial";
 import { safeAction } from "../program";
 import { createContext, resolveTeamId, type CliContext } from "../context";
 import { CliError, emitResult } from "../output";
 import { COMMENT_PLATFORMS, type CommentPlatform, isCommentPlatform, normalizePlatform } from "../platforms";
-import { resolveTargetPlatforms, toIsoDate } from "../post-data";
+import { resolveTargetPlatforms, resolveDataArgument, toIsoDate } from "../post-data";
+
+type CommentUpdateBody = NonNullable<CommentUpdateData["requestBody"]>;
 
 type CommentImportPlatform = NonNullable<CommentImportCreateData["requestBody"]>["socialAccountType"];
 
@@ -185,6 +188,60 @@ export function registerCommentsCommands(program: Command): void {
         const ctx = createContext(command.optsWithGlobals());
         emitResult(await ctx.client.comment.commentDelete({ id }), ctx.pretty);
       }),
+    );
+
+  program
+    .command("comments:update")
+    .summary("update an existing comment")
+    .description(
+      "Update an existing comment by id — change its title, scheduled date, status (DRAFT/SCHEDULED), targeted platforms and/or per-platform text. Only the fields you pass are changed. Use --data / --data-file for the full per-platform `data` object.",
+    )
+    .argument("<id>", "comment id")
+    .option("--title <text>", "new title")
+    .option("--date <iso8601>", "new scheduled date, ISO 8601")
+    .option("--status <status>", "new status: DRAFT | SCHEDULED")
+    .option("-c, --content <text>", "new comment text, applied to every targeted platform")
+    .option("-p, --platform <platform...>", "comment-capable platform name/alias. Repeatable.")
+    .option("--data <json>", "advanced: the full comment `data` object as JSON, e.g. '{\"LINKEDIN\":{\"text\":\"new\"}}'")
+    .option("--data-file <path>", "advanced: read the full `data` object from a JSON file")
+    .action(
+      safeAction(
+        async (
+          id: string,
+          opts: { title?: string; date?: string; status?: string; content?: string; platform?: string[]; data?: string; dataFile?: string },
+          command: Command,
+        ) => {
+          const ctx = createContext(command.optsWithGlobals());
+          const dataArg = resolveDataArgument(opts.data, opts.dataFile);
+          const platforms = (opts.platform ?? []).map(normalizePlatform).filter(isCommentPlatform) as CommentPlatform[];
+          const wantsDataChange = opts.content !== undefined || dataArg !== undefined;
+
+          const requestBody: CommentUpdateBody = {};
+          if (opts.title !== undefined) requestBody.title = opts.title;
+          if (opts.date) requestBody.postDate = toIsoDate(opts.date, "--date");
+          if (opts.status) requestBody.status = opts.status.trim().toUpperCase() as CommentUpdateBody["status"];
+          if (platforms.length > 0) requestBody.socialAccountTypes = platforms as CommentUpdateBody["socialAccountTypes"];
+          if (wantsDataChange) {
+            if (dataArg) {
+              requestBody.data = dataArg as unknown as CommentUpdateBody["data"];
+            } else {
+              if (platforms.length === 0) {
+                throw new CliError("NO_TARGET", "Pass --platform when changing --content (the per-platform comment text needs to know which platforms to target).");
+              }
+              const perPlatform: Record<string, { text: string }> = {};
+              for (const platform of platforms) perPlatform[platform] = { text: opts.content as string };
+              requestBody.data = perPlatform as unknown as CommentUpdateBody["data"];
+            }
+          }
+          if (Object.keys(requestBody).length === 0) {
+            throw new CliError(
+              "NOTHING_TO_UPDATE",
+              "Nothing to update — pass at least one of --title, --date, --status, --content (+ --platform), --data, --data-file.",
+            );
+          }
+          emitResult(await ctx.client.comment.commentUpdate({ id, requestBody }), ctx.pretty);
+        },
+      ),
     );
 
   program

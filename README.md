@@ -155,13 +155,16 @@ bundle-social comments:create --post-id post_abc123 -i linkedin --date 2026-06-0
 
 Flags: `--post-id <id>` (required), `-c, --content <text...>` (repeatable), `-i, --integration-id <id...>` / `-p, --platform <platform...>` (defaults to the post's platforms), `--date <iso>`, `--delay <minutes>`, `--draft`.
 
-### `comments:list` / `comments:get <id>` / `comments:delete <id>`
+### `comments:list` / `comments:get <id>` / `comments:update <id>` / `comments:delete <id>`
 
 ```bash
 bundle-social comments:list --post-id post_abc123 --status POSTED
 bundle-social comments:get cmt_abc123
+bundle-social comments:update cmt_abc123 --content "edited" -p linkedin
 bundle-social comments:delete cmt_abc123
 ```
+
+`comments:update` mirrors `posts:update`: only the fields you pass change. Flags: `--title`, `--date`, `--status DRAFT|SCHEDULED`, `--content` (+ `-p` for the platforms), `--data` / `--data-file`.
 
 ### `integrations:tools` / `integrations:trigger <method>`
 
