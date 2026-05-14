@@ -14,8 +14,15 @@ const mocks = vi.hoisted(() => {
       organizationGetPostsUsage: vi.fn(),
       organizationGetCommentsUsage: vi.fn(),
       organizationGetUploadsUsage: vi.fn(),
+      organizationGetImportsUsage: vi.fn(),
     },
-    team: { teamGetTeam: vi.fn() },
+    team: {
+      teamGetTeam: vi.fn(),
+      teamGetList: vi.fn(),
+      teamCreateTeam: vi.fn(),
+      teamUpdateTeam: vi.fn(),
+      teamDeleteTeam: vi.fn(),
+    },
     post: {
       postCreate: vi.fn(),
       postGetList: vi.fn(),
@@ -29,14 +36,57 @@ const mocks = vi.hoisted(() => {
       commentGetList: vi.fn(),
       commentGet: vi.fn(),
       commentDelete: vi.fn(),
+      commentImportCreate: vi.fn(),
+      commentImportGetList: vi.fn(),
+      commentImportGetById: vi.fn(),
+      commentImportGetFetchedComments: vi.fn(),
     },
     analytics: {
       analyticsGetPostAnalytics: vi.fn(),
+      analyticsGetPostAnalyticsRaw: vi.fn(),
       analyticsGetSocialAccountAnalytics: vi.fn(),
+      analyticsGetSocialAccountAnalyticsRaw: vi.fn(),
+      analyticsGetBulkPostAnalytics: vi.fn(),
+      analyticsForcePostAnalytics: vi.fn(),
+      analyticsForceSocialAccountAnalytics: vi.fn(),
     },
     upload: {
       uploadCreate: vi.fn(),
       uploadCreateFromUrl: vi.fn(),
+      uploadGetList: vi.fn(),
+      uploadGet: vi.fn(),
+      uploadDelete: vi.fn(),
+      uploadDeleteMany: vi.fn(),
+      uploadInitLargeUpload: vi.fn(),
+      uploadFinalizeLargeUpload: vi.fn(),
+    },
+    socialAccount: {
+      socialAccountConnect: vi.fn(),
+      socialAccountDisconnect: vi.fn(),
+      socialAccountSetChannel: vi.fn(),
+      socialAccountUnsetChannel: vi.fn(),
+      socialAccountRefreshChannels: vi.fn(),
+      socialAccountCreatePortalLink: vi.fn(),
+      socialAccountConnectionCheck: vi.fn(),
+      socialAccountProfileRefresh: vi.fn(),
+      socialAccountGetByType: vi.fn(),
+      socialAccountCopy: vi.fn(),
+      socialAccountGetAccountsToDelete: vi.fn(),
+    },
+    postImport: {
+      postImportCreate: vi.fn(),
+      postImportGetStatus: vi.fn(),
+      postImportGetById: vi.fn(),
+      postImportGetImportedPosts: vi.fn(),
+      postImportDeleteImportedPosts: vi.fn(),
+      postImportRetryImport: vi.fn(),
+    },
+    postCsv: {
+      postCsvCreate: vi.fn(),
+      postCsvGetList: vi.fn(),
+      postCsvGetById: vi.fn(),
+      postCsvGetStatus: vi.fn(),
+      postCsvGetRows: vi.fn(),
     },
     misc: {
       miscRedditGetSubredditFlairs: vi.fn(),
@@ -115,14 +165,55 @@ describe("meta", () => {
     expect(exitCode).toBe(0);
     for (const command of [
       "integrations:list",
+      "integrations:connect",
+      "integrations:disconnect",
+      "integrations:set-channel",
+      "integrations:unset-channel",
+      "integrations:refresh-channels",
+      "integrations:portal-link",
+      "integrations:check",
+      "integrations:refresh-profile",
+      "integrations:by-type",
+      "integrations:copy",
+      "integrations:to-delete",
       "posts:create",
       "posts:schedule",
       "posts:list",
       "posts:get",
       "posts:delete",
+      "posts:import",
+      "posts:imports",
+      "posts:import:get",
+      "posts:import:posts",
+      "posts:import:delete-posts",
+      "posts:import:retry",
+      "posts:csv",
+      "posts:csv:list",
+      "posts:csv:get",
+      "posts:csv:status",
+      "posts:csv:rows",
+      "comments:import",
+      "comments:imports",
+      "comments:import:get",
+      "comments:import:comments",
       "media:upload",
+      "media:list",
+      "media:get",
+      "media:delete",
+      "media:delete-many",
+      "media:upload-large",
       "analytics:post",
+      "analytics:account",
+      "analytics:bulk",
+      "analytics:refresh",
       "analytics:summary",
+      "teams:list",
+      "teams:get",
+      "teams:create",
+      "teams:update",
+      "teams:delete",
+      "org:get",
+      "org:usage",
       "doctor",
     ]) {
       expect(stdout).toContain(command);
@@ -573,5 +664,373 @@ describe("integrations:tools / integrations:trigger", () => {
     const { json, exitCode } = await runCli(["integrations:trigger", "bogus:thing"]);
     expect(exitCode).toBe(1);
     expect(json).toMatchObject({ error: { code: "UNKNOWN_INTEGRATION_TOOL" } });
+  });
+});
+
+// --- teams -------------------------------------------------------------------
+
+describe("teams", () => {
+  it("lists teams with search and pagination", async () => {
+    client.team.teamGetList.mockResolvedValue({ items: [{ id: "team_test", name: "Test Team" }] });
+    const { json, exitCode } = await runCli(["teams:list", "--limit", "5", "--offset", "2", "-q", "test"]);
+    expect(exitCode).toBe(0);
+    expect(client.team.teamGetList).toHaveBeenCalledWith({ limit: 5, offset: 2, search: "test" });
+    expect(json).toMatchObject({ items: [{ id: "team_test" }] });
+  });
+
+  it("gets a team by id", async () => {
+    client.team.teamGetTeam.mockResolvedValue({ id: "team_x", name: "X" });
+    const { json } = await runCli(["teams:get", "team_x"]);
+    expect(client.team.teamGetTeam).toHaveBeenCalledWith({ id: "team_x" });
+    expect(json).toMatchObject({ id: "team_x" });
+  });
+
+  it("creates a team", async () => {
+    client.team.teamCreateTeam.mockResolvedValue({ id: "team_new", name: "New" });
+    const { json, exitCode } = await runCli(["teams:create", "--name", "New", "--avatar-url", "https://cdn/a.png"]);
+    expect(exitCode).toBe(0);
+    expect(client.team.teamCreateTeam).toHaveBeenCalledWith({ requestBody: { name: "New", avatarUrl: "https://cdn/a.png" } });
+    expect(json).toMatchObject({ id: "team_new" });
+  });
+
+  it("errors when creating a team without a name", async () => {
+    const { json, exitCode } = await runCli(["teams:create"]);
+    expect(exitCode).toBe(1);
+    expect(json).toMatchObject({ error: { code: "MISSING_NAME" } });
+  });
+
+  it("updates only the team fields passed", async () => {
+    client.team.teamUpdateTeam.mockResolvedValue({ id: "team_x", name: "Renamed" });
+    await runCli(["teams:update", "team_x", "--name", "Renamed"]);
+    expect(client.team.teamUpdateTeam).toHaveBeenCalledWith({ id: "team_x", requestBody: { name: "Renamed" } });
+  });
+
+  it("errors when updating a team with nothing to change", async () => {
+    const { json, exitCode } = await runCli(["teams:update", "team_x"]);
+    expect(exitCode).toBe(1);
+    expect(json).toMatchObject({ error: { code: "NOTHING_TO_UPDATE" } });
+  });
+
+  it("deletes a team", async () => {
+    client.team.teamDeleteTeam.mockResolvedValue({ id: "team_x" });
+    await runCli(["teams:delete", "team_x"]);
+    expect(client.team.teamDeleteTeam).toHaveBeenCalledWith({ id: "team_x" });
+  });
+});
+
+// --- org ---------------------------------------------------------------------
+
+describe("org", () => {
+  it("gets the organization", async () => {
+    const { json } = await runCli(["org:get"]);
+    expect(client.organization.organizationGetOrganization).toHaveBeenCalled();
+    expect(json).toMatchObject({ id: "org_test" });
+  });
+
+  it("composes usage from all four endpoints", async () => {
+    client.organization.organizationGetPostsUsage.mockResolvedValue({ used: 1 });
+    client.organization.organizationGetCommentsUsage.mockResolvedValue({ used: 2 });
+    client.organization.organizationGetUploadsUsage.mockResolvedValue({ used: 3 });
+    client.organization.organizationGetImportsUsage.mockResolvedValue({ socialAccounts: [] });
+    const { json, exitCode } = await runCli(["org:usage", "--social-account-type", "instagram", "--page", "1"]);
+    expect(exitCode).toBe(0);
+    expect(client.organization.organizationGetImportsUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: "team_test", socialAccountType: "INSTAGRAM", page: 1 }),
+    );
+    expect(json).toMatchObject({ posts: { used: 1 }, comments: { used: 2 }, uploads: { used: 3 }, imports: { socialAccounts: [] } });
+  });
+});
+
+// --- integrations: social-account ops ----------------------------------------
+
+describe("integrations social-account ops", () => {
+  it("connect returns an OAuth URL", async () => {
+    client.socialAccount.socialAccountConnect.mockResolvedValue({ url: "https://oauth/x" });
+    const { json, exitCode } = await runCli(["integrations:connect", "-p", "x", "--redirect-url", "https://app/cb"]);
+    expect(exitCode).toBe(0);
+    expect(client.socialAccount.socialAccountConnect).toHaveBeenCalledWith({
+      requestBody: { type: "TWITTER", teamId: "team_test", redirectUrl: "https://app/cb" },
+    });
+    expect(json).toMatchObject({ url: "https://oauth/x" });
+  });
+
+  it("disconnect by platform", async () => {
+    client.socialAccount.socialAccountDisconnect.mockResolvedValue({ ok: true });
+    await runCli(["integrations:disconnect", "-p", "instagram"]);
+    expect(client.socialAccount.socialAccountDisconnect).toHaveBeenCalledWith({
+      requestBody: { type: "INSTAGRAM", teamId: "team_test" },
+    });
+  });
+
+  it("set-channel", async () => {
+    client.socialAccount.socialAccountSetChannel.mockResolvedValue({ ok: true });
+    await runCli(["integrations:set-channel", "-p", "youtube", "--channel-id", "ch_1"]);
+    expect(client.socialAccount.socialAccountSetChannel).toHaveBeenCalledWith({
+      requestBody: { type: "YOUTUBE", teamId: "team_test", channelId: "ch_1" },
+    });
+  });
+
+  it("unset-channel", async () => {
+    client.socialAccount.socialAccountUnsetChannel.mockResolvedValue({ ok: true });
+    await runCli(["integrations:unset-channel", "-p", "facebook"]);
+    expect(client.socialAccount.socialAccountUnsetChannel).toHaveBeenCalledWith({
+      requestBody: { type: "FACEBOOK", teamId: "team_test" },
+    });
+  });
+
+  it("refresh-channels", async () => {
+    client.socialAccount.socialAccountRefreshChannels.mockResolvedValue({ ok: true });
+    await runCli(["integrations:refresh-channels", "-p", "reddit"]);
+    expect(client.socialAccount.socialAccountRefreshChannels).toHaveBeenCalledWith({
+      requestBody: { type: "REDDIT", teamId: "team_test" },
+    });
+  });
+
+  it("portal-link", async () => {
+    client.socialAccount.socialAccountCreatePortalLink.mockResolvedValue({ url: "https://portal/x" });
+    const { json } = await runCli(["integrations:portal-link", "-p", "x", "-p", "instagram", "--expires-in", "30"]);
+    const body = client.socialAccount.socialAccountCreatePortalLink.mock.calls[0][0].requestBody;
+    expect(body.teamId).toBe("team_test");
+    expect(body.socialAccountTypes.sort()).toEqual(["INSTAGRAM", "TWITTER"]);
+    expect(body.expiresIn).toBe(30);
+    expect(json).toMatchObject({ url: "https://portal/x" });
+  });
+
+  it("connection check", async () => {
+    client.socialAccount.socialAccountConnectionCheck.mockResolvedValue({ ok: true });
+    await runCli(["integrations:check", "-p", "tiktok"]);
+    expect(client.socialAccount.socialAccountConnectionCheck).toHaveBeenCalledWith({
+      requestBody: { type: "TIKTOK", teamId: "team_test" },
+    });
+  });
+
+  it("profile refresh", async () => {
+    client.socialAccount.socialAccountProfileRefresh.mockResolvedValue({ ok: true });
+    await runCli(["integrations:refresh-profile", "-p", "bluesky"]);
+    expect(client.socialAccount.socialAccountProfileRefresh).toHaveBeenCalledWith({
+      requestBody: { type: "BLUESKY", teamId: "team_test" },
+    });
+  });
+
+  it("by-type", async () => {
+    client.socialAccount.socialAccountGetByType.mockResolvedValue({ id: "acc_ig", type: "INSTAGRAM" });
+    const { json } = await runCli(["integrations:by-type", "ig"]);
+    expect(client.socialAccount.socialAccountGetByType).toHaveBeenCalledWith({ teamId: "team_test", type: "INSTAGRAM" });
+    expect(json).toMatchObject({ id: "acc_ig" });
+  });
+
+  it("copy", async () => {
+    client.socialAccount.socialAccountCopy.mockResolvedValue({ ok: true });
+    await runCli(["integrations:copy", "--from-team-id", "team_a", "--to-team-id", "team_b", "-p", "x"]);
+    expect(client.socialAccount.socialAccountCopy).toHaveBeenCalledWith({
+      requestBody: { fromTeamId: "team_a", toTeamId: "team_b", socialAccountTypes: ["TWITTER"] },
+    });
+  });
+
+  it("to-delete", async () => {
+    client.socialAccount.socialAccountGetAccountsToDelete.mockResolvedValue({ items: [] });
+    const { json } = await runCli(["integrations:to-delete", "--page", "2", "--page-size", "10"]);
+    expect(client.socialAccount.socialAccountGetAccountsToDelete).toHaveBeenCalledWith({ page: 2, pageSize: 10 });
+    expect(json).toMatchObject({ items: [] });
+  });
+});
+
+// --- media: list/get/delete --------------------------------------------------
+
+describe("media list/get/delete", () => {
+  it("lists uploads with filters", async () => {
+    client.upload.uploadGetList.mockResolvedValue({ items: [{ id: "up_1" }] });
+    const { json } = await runCli(["media:list", "--type", "video", "--status", "UNUSED"]);
+    expect(client.upload.uploadGetList).toHaveBeenCalledWith({ teamId: "team_test", type: "video", status: "UNUSED" });
+    expect(json).toMatchObject({ items: [{ id: "up_1" }] });
+  });
+
+  it("gets and deletes an upload", async () => {
+    client.upload.uploadGet.mockResolvedValue({ id: "up_9" });
+    client.upload.uploadDelete.mockResolvedValue({ id: "up_9" });
+    await runCli(["media:get", "up_9"]);
+    expect(client.upload.uploadGet).toHaveBeenCalledWith({ id: "up_9" });
+    await runCli(["media:delete", "up_9"]);
+    expect(client.upload.uploadDelete).toHaveBeenCalledWith({ id: "up_9" });
+  });
+
+  it("deletes many uploads", async () => {
+    client.upload.uploadDeleteMany.mockResolvedValue({ count: 2 });
+    await runCli(["media:delete-many", "--id", "up_1", "--id", "up_2"]);
+    expect(client.upload.uploadDeleteMany).toHaveBeenCalledWith({ requestBody: { ids: ["up_1", "up_2"] } });
+  });
+});
+
+// --- comment imports ---------------------------------------------------------
+
+describe("comment imports", () => {
+  it("starts a comment import", async () => {
+    client.comment.commentImportCreate.mockResolvedValue({ id: "imp_1", status: "PENDING" });
+    const { json, exitCode } = await runCli(["comments:import", "--post-id", "post_1", "-p", "instagram"]);
+    expect(exitCode).toBe(0);
+    expect(client.comment.commentImportCreate).toHaveBeenCalledWith({
+      requestBody: { teamId: "team_test", postId: "post_1", socialAccountType: "INSTAGRAM" },
+    });
+    expect(json).toMatchObject({ id: "imp_1" });
+  });
+
+  it("lists comment imports", async () => {
+    client.comment.commentImportGetList.mockResolvedValue({ items: [] });
+    await runCli(["comments:imports", "--post-id", "post_1", "--status", "completed"]);
+    expect(client.comment.commentImportGetList).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: "team_test", postId: "post_1", status: "COMPLETED" }),
+    );
+  });
+
+  it("gets a comment import by id", async () => {
+    client.comment.commentImportGetById.mockResolvedValue({ id: "imp_9" });
+    await runCli(["comments:import:get", "imp_9"]);
+    expect(client.comment.commentImportGetById).toHaveBeenCalledWith({ importId: "imp_9" });
+  });
+
+  it("lists fetched comments", async () => {
+    client.comment.commentImportGetFetchedComments.mockResolvedValue({ items: [] });
+    await runCli(["comments:import:comments", "--post-id", "post_1", "-p", "youtube", "--limit", "10"]);
+    expect(client.comment.commentImportGetFetchedComments).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: "team_test", postId: "post_1", platform: "YOUTUBE", limit: 10 }),
+    );
+  });
+});
+
+// --- post imports ------------------------------------------------------------
+
+describe("post imports", () => {
+  it("starts a post-history import", async () => {
+    client.postImport.postImportCreate.mockResolvedValue({ id: "phi_1" });
+    const { json, exitCode } = await runCli(["posts:import", "-p", "tiktok", "--count", "10", "--with-analytics"]);
+    expect(exitCode).toBe(0);
+    expect(client.postImport.postImportCreate).toHaveBeenCalledWith({
+      requestBody: { teamId: "team_test", socialAccountType: "TIKTOK", count: 10, withAnalytics: true },
+    });
+    expect(json).toMatchObject({ id: "phi_1" });
+  });
+
+  it("rejects a non-positive count", async () => {
+    const { json, exitCode } = await runCli(["posts:import", "-p", "tiktok", "--count", "0"]);
+    expect(exitCode).toBe(1);
+    expect(json).toMatchObject({ error: { code: "INVALID_COUNT" } });
+  });
+
+  it("lists import statuses, by id, and imported posts", async () => {
+    client.postImport.postImportGetStatus.mockResolvedValue({ items: [] });
+    client.postImport.postImportGetById.mockResolvedValue({ id: "phi_9" });
+    client.postImport.postImportGetImportedPosts.mockResolvedValue({ items: [] });
+    await runCli(["posts:imports", "-p", "instagram"]);
+    expect(client.postImport.postImportGetStatus).toHaveBeenCalledWith({ teamId: "team_test", socialAccountType: "INSTAGRAM" });
+    await runCli(["posts:import:get", "phi_9"]);
+    expect(client.postImport.postImportGetById).toHaveBeenCalledWith({ importId: "phi_9" });
+    await runCli(["posts:import:posts", "-p", "instagram", "--limit", "5"]);
+    expect(client.postImport.postImportGetImportedPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: "team_test", socialAccountType: "INSTAGRAM", limit: 5 }),
+    );
+  });
+
+  it("bulk-deletes imported posts and retries an import", async () => {
+    client.postImport.postImportDeleteImportedPosts.mockResolvedValue({ count: 2 });
+    client.postImport.postImportRetryImport.mockResolvedValue({ id: "phi_9" });
+    await runCli(["posts:import:delete-posts", "--id", "p1", "--id", "p2"]);
+    expect(client.postImport.postImportDeleteImportedPosts).toHaveBeenCalledWith({
+      requestBody: { teamId: "team_test", postIds: ["p1", "p2"] },
+    });
+    await runCli(["posts:import:retry", "phi_9"]);
+    expect(client.postImport.postImportRetryImport).toHaveBeenCalledWith({ importId: "phi_9", requestBody: { teamId: "team_test" } });
+  });
+});
+
+// --- post CSV ----------------------------------------------------------------
+
+describe("post CSV import", () => {
+  it("uploads a CSV file", async () => {
+    client.postCsv.postCsvCreate.mockResolvedValue({ id: "csv_1" });
+    const file = path.join(os.tmpdir(), `bundlesocial-cli-test-${Date.now()}.csv`);
+    await fs.writeFile(file, "a,b\n1,2\n");
+    try {
+      const { json, exitCode } = await runCli(["posts:csv", "--file", file]);
+      expect(exitCode).toBe(0);
+      const arg = client.postCsv.postCsvCreate.mock.calls[0][0];
+      expect(arg.formData.file).toBeInstanceOf(File);
+      expect(json).toMatchObject({ id: "csv_1" });
+    } finally {
+      await fs.rm(file, { force: true });
+    }
+  });
+
+  it("errors when the CSV file is missing", async () => {
+    const { json, exitCode } = await runCli(["posts:csv", "--file", "/no/such/file.csv"]);
+    expect(exitCode).toBe(1);
+    expect(json).toMatchObject({ error: { code: "FILE_NOT_FOUND" } });
+  });
+
+  it("lists, gets, status and rows", async () => {
+    client.postCsv.postCsvGetList.mockResolvedValue({ items: [] });
+    client.postCsv.postCsvGetById.mockResolvedValue({ id: "csv_9" });
+    client.postCsv.postCsvGetStatus.mockResolvedValue({ status: "DONE" });
+    client.postCsv.postCsvGetRows.mockResolvedValue({ items: [] });
+    await runCli(["posts:csv:list", "--limit", "5"]);
+    expect(client.postCsv.postCsvGetList).toHaveBeenCalledWith({ limit: 5, offset: undefined });
+    await runCli(["posts:csv:get", "csv_9"]);
+    expect(client.postCsv.postCsvGetById).toHaveBeenCalledWith({ importId: "csv_9" });
+    await runCli(["posts:csv:status", "csv_9"]);
+    expect(client.postCsv.postCsvGetStatus).toHaveBeenCalledWith({ importId: "csv_9" });
+    await runCli(["posts:csv:rows", "csv_9", "--status", "failed"]);
+    expect(client.postCsv.postCsvGetRows).toHaveBeenCalledWith(expect.objectContaining({ importId: "csv_9", status: "FAILED" }));
+  });
+});
+
+// --- analytics: new commands -------------------------------------------------
+
+describe("analytics new commands", () => {
+  it("analytics:post --raw uses the raw endpoint", async () => {
+    client.analytics.analyticsGetPostAnalyticsRaw.mockResolvedValue({ raw: true });
+    const { json } = await runCli(["analytics:post", "post_1", "--raw", "-p", "instagram"]);
+    expect(client.analytics.analyticsGetPostAnalyticsRaw).toHaveBeenCalledWith({ postId: "post_1", platformType: "INSTAGRAM" });
+    expect(json).toMatchObject({ raw: true });
+  });
+
+  it("analytics:account fetches social account analytics", async () => {
+    client.analytics.analyticsGetSocialAccountAnalytics.mockResolvedValue({ items: [] });
+    await runCli(["analytics:account", "-p", "tiktok"]);
+    expect(client.analytics.analyticsGetSocialAccountAnalytics).toHaveBeenCalledWith({ teamId: "team_test", platformType: "TIKTOK" });
+  });
+
+  it("analytics:account --raw uses the raw endpoint", async () => {
+    client.analytics.analyticsGetSocialAccountAnalyticsRaw.mockResolvedValue({ raw: true });
+    await runCli(["analytics:account", "-p", "tiktok", "--raw"]);
+    expect(client.analytics.analyticsGetSocialAccountAnalyticsRaw).toHaveBeenCalledWith({ teamId: "team_test", platformType: "TIKTOK" });
+  });
+
+  it("analytics:bulk passes the post ids", async () => {
+    client.analytics.analyticsGetBulkPostAnalytics.mockResolvedValue({ items: [] });
+    await runCli(["analytics:bulk", "-p", "youtube", "--post-id", "p1", "--post-id", "p2", "--page", "1"]);
+    expect(client.analytics.analyticsGetBulkPostAnalytics).toHaveBeenCalledWith(
+      expect.objectContaining({ postIds: ["p1", "p2"], platformType: "YOUTUBE", page: 1 }),
+    );
+  });
+
+  it("analytics:refresh forces a post when --post-id is given", async () => {
+    client.analytics.analyticsForcePostAnalytics.mockResolvedValue({ ok: true });
+    await runCli(["analytics:refresh", "--post-id", "post_1"]);
+    expect(client.analytics.analyticsForcePostAnalytics).toHaveBeenCalledWith({
+      requestBody: { postId: "post_1", platformType: undefined },
+    });
+  });
+
+  it("analytics:refresh forces a social account when only --platform is given", async () => {
+    client.analytics.analyticsForceSocialAccountAnalytics.mockResolvedValue({ ok: true });
+    await runCli(["analytics:refresh", "-p", "instagram"]);
+    expect(client.analytics.analyticsForceSocialAccountAnalytics).toHaveBeenCalledWith({
+      requestBody: { teamId: "team_test", platformType: "INSTAGRAM" },
+    });
+  });
+
+  it("analytics:refresh errors with no target", async () => {
+    const { json, exitCode } = await runCli(["analytics:refresh"]);
+    expect(exitCode).toBe(1);
+    expect(json).toMatchObject({ error: { code: "NO_TARGET" } });
   });
 });

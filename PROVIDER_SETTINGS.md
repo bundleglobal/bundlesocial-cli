@@ -1,5 +1,14 @@
 # Per-platform settings reference
 
+<!--
+  SYNC: the per-platform field tables below are mirrored verbatim in the hosted
+  docs at https://docs.bundle.social/api-reference/platform-parameters
+  (source: bundlesocial-docs/api-reference/platform-parameters.mdx). When the API
+  gains, removes or changes a `data.<PLATFORM>` field, update BOTH files in the
+  same change. The only intended differences are this file's "How the CLI builds
+  data" intro vs. that page's frontmatter / <Note> / "Media notes" section.
+-->
+
 This is the exhaustive reference for the per-platform fields you put under
 `data.<PLATFORM>` — i.e. what you pass via `--platform-settings` (keyed by
 platform) or `--data` / `--data-file` to `posts:create` / `posts:schedule` /

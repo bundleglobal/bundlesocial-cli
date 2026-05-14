@@ -43,6 +43,15 @@ All commands accept the global flags `--api-key <key>`, `--api-url <url>`, `--te
 | `integrations:list` | List connected social accounts (`id`, `type`, `username`, `channels`). Use it to discover integration ids and what platforms are available. |
 | `integrations:tools` | List the read-only platform helper methods callable via `integrations:trigger`. |
 | `integrations:trigger <method> [--data '<json>']` | Call a helper: `reddit:flairs` (`{"subreddit":"r/..."}`), `reddit:requirements`, `youtube:categories` (`{"regionCode":"US"}`), `youtube:playlists`, `youtube:regions`, `linkedin:mentions` (`{"q":"...","scope":"organizations"}`), `instagram:locations` (`{"q":"..."}`), `gbp:location`, `gbp:categories` (`{"languageCode":"en","regionCode":"US"}`), `tiktok:trending-music`. Use these to get values the API needs (flair ids, category ids, mention URNs, …). |
+| `integrations:connect -p <platform> --redirect-url <url>` | Start an OAuth connect flow; returns a `url` to redirect the user to. `--server-url` (Mastodon/Bluesky), `--instagram-connection-method`, `--with-business-scope`, `--data`/`--data-file`. |
+| `integrations:disconnect -p <platform>` | Disconnect that platform's account from the team. |
+| `integrations:set-channel -p <platform> --channel-id <id>` / `integrations:unset-channel -p <platform>` | Pick / clear the channel/page to post to (FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, GBP). |
+| `integrations:refresh-channels -p <platform>` | Refresh the cached channels (DISCORD, SLACK, REDDIT, PINTEREST, …). |
+| `integrations:portal-link -p <platform...> [--redirect-url <url>] [--expires-in <min>] [--data '<json>']` | Create a hosted portal link for the user to connect/manage accounts; returns a `url`. |
+| `integrations:check -p <platform>` / `integrations:refresh-profile -p <platform>` | Run a connection check / refresh cached profile info. |
+| `integrations:by-type <type>` | Fetch the connected account for a platform on the team. |
+| `integrations:copy --from-team-id <id> --to-team-id <id> -p <platform...> [--reset-channel]` | Copy connected accounts between teams. |
+| `integrations:to-delete [--page <n>] [--page-size <n>]` | List accounts scheduled for deletion. |
 | `posts:create` | Publish a post **now** (or `--draft`). |
 | `posts:schedule` | Schedule a post for a future ISO-8601 `--date`. |
 | `posts:update <id>` | Update a post — only the fields you pass change (title, date, status, content, media, platform settings, platforms). If you change content without `-i`/`-p`, the post's current platforms are reused. |
@@ -50,11 +59,28 @@ All commands accept the global flags `--api-key <key>`, `--api-url <url>`, `--te
 | `posts:get <id>` | Fetch one post by id. |
 | `posts:delete <id>` | Delete a post by id. |
 | `posts:retry <id>` | Re-attempt a post that ended in `ERROR`. |
+| `posts:import -p <platform> --count <n> [--with-analytics] [--import-carousels] [--surface <s>] [--media-type <t>]` | Start an async import of an account's recent posts (post history). Platforms: FACEBOOK, INSTAGRAM, THREADS, TIKTOK, YOUTUBE, LINKEDIN, PINTEREST, REDDIT, MASTODON, BLUESKY. |
+| `posts:imports [-p <platform>]` / `posts:import:get <importId>` | List post-history import statuses / fetch one. |
+| `posts:import:posts -p <platform> [--limit <n>] [--offset <n>]` | List imported posts (with analytics) for an account. |
+| `posts:import:delete-posts --id <id...>` / `posts:import:retry <importId>` | Bulk-delete imported posts / retry a failed import. |
+| `posts:csv --file <path>` | Upload a CSV for an async bulk post import. |
+| `posts:csv:list [--limit <n>] [--offset <n>]` / `posts:csv:get <importId>` / `posts:csv:status <importId>` / `posts:csv:rows <importId> [--status SUCCESS\|FAILED]` | Track a CSV bulk import. |
 | `comments:create --post-id <id> -c "..." [-c "..." ...]` | Comment on a post; repeat `-c` for a chain of replies (X-style thread via comments). Comment-capable platforms: TIKTOK, YOUTUBE, INSTAGRAM, FACEBOOK, THREADS, LINKEDIN, REDDIT, MASTODON, DISCORD, SLACK, BLUESKY. Optional `--date`, `--delay <minutes>`, `--draft`, `-i`/`-p` (defaults to the post's platforms). |
 | `comments:list [--post-id <id>]` / `comments:get <id>` / `comments:delete <id>` | List/fetch/delete comments. |
+| `comments:import --post-id <id> -p <platform>` | Start an async import of a post's comments. Platforms: FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, TIKTOK, REDDIT, THREADS, MASTODON, BLUESKY. |
+| `comments:imports [--post-id <id>] [--status <s>]` / `comments:import:get <importId>` | List comment-import jobs / fetch one. |
+| `comments:import:comments --post-id <id> [-p <platform>] [--social-account-id <id>]` | List the comments fetched for a post via `comments:import`. |
 | `media:upload <path-or-url>` | Upload an image/video/document from a local path or public URL → returns the upload object (use its `id`). |
-| `analytics:post <id>` | Engagement metrics for one post. |
+| `media:upload-large <path>` | Upload a large local file (>90 MB) via the chunked init → PUT → finalize flow. |
+| `media:list [--type <t>] [--status USED\|UNUSED]` / `media:get <id>` / `media:delete <id>` / `media:delete-many --id <id...>` | List/fetch/delete uploaded media. |
+| `analytics:post <id> [--raw]` | Engagement metrics for one post (`--raw` = unprocessed provider payload). |
+| `analytics:account -p <platform> [--raw]` | Analytics snapshots for a connected social account (`--raw` = unprocessed provider payload). |
+| `analytics:bulk -p <platform> --post-id <id...>` | Analytics for up to 60 posts in one request. |
+| `analytics:refresh [--post-id <id>] [-p <platform>]` | Force-refresh analytics for a post (`--post-id`) or a connected account (`-p`). |
 | `analytics:summary` | Org-level usage quotas + latest per-integration analytics snapshot. |
+| `teams:list` / `teams:get <id>` / `teams:create --name <name>` / `teams:update <id>` / `teams:delete <id>` | Manage the teams in your organization. |
+| `org:get` | Fetch your organization — id, name, plan limits, feature flags, teams. |
+| `org:usage [--page <n>] [--page-size <n>] [--social-account-type <p>] [--social-account-id <id>]` | Posts/comments/uploads usage + per-account imports breakdown. |
 | `doctor` | Self-diagnostic JSON. |
 
 ### Composing a post (`posts:create` / `posts:schedule` / `posts:update`)

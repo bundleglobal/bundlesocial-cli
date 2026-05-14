@@ -174,6 +174,59 @@ bundle-social integrations:trigger youtube:categories --data '{"regionCode":"US"
 bundle-social integrations:trigger linkedin:mentions --data '{"q":"Anthropic","scope":"organizations"}'
 ```
 
+### Managing social accounts
+
+| Command | Description |
+|---|---|
+| `integrations:connect -p <platform> --redirect-url <url>` | Start an OAuth connect flow — returns a `url` to redirect the user to. `--server-url` for Mastodon/Bluesky; `--instagram-connection-method FACEBOOK\|INSTAGRAM`; `--with-business-scope`; `--data`/`--data-file` for the full body. |
+| `integrations:disconnect -p <platform>` | Disconnect a social account of that platform from the team. |
+| `integrations:set-channel -p <platform> --channel-id <id>` | Pick the channel/page to post to (FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, GBP). |
+| `integrations:unset-channel -p <platform>` | Clear the selected channel/page (keeps authorization). |
+| `integrations:refresh-channels -p <platform>` | Refresh the cached channels (DISCORD, SLACK, REDDIT, PINTEREST, …). |
+| `integrations:portal-link -p <platform...> [--redirect-url <url>] [--expires-in <min>] [--data <json>]` | Create a bundle.social-hosted portal link the user can use to connect/manage accounts. |
+| `integrations:check -p <platform>` | Run a connection/disconnect check for that platform's account. |
+| `integrations:refresh-profile -p <platform>` | Refresh the cached profile info (username, display name, avatar). |
+| `integrations:by-type <type>` | Fetch the connected social account for a platform on the team. |
+| `integrations:copy --from-team-id <id> --to-team-id <id> -p <platform...> [--reset-channel]` | Copy connected accounts between teams. |
+| `integrations:to-delete [--page <n>] [--page-size <n>]` | List social accounts scheduled for deletion (paginated). |
+
+```bash
+bundle-social integrations:connect -p instagram --redirect-url https://app.example.com/callback
+bundle-social integrations:set-channel -p youtube --channel-id UC_abc123
+bundle-social integrations:portal-link -p x -p instagram -p linkedin --expires-in 60
+```
+
+### Importing posts & comments
+
+| Command | Description |
+|---|---|
+| `posts:import -p <platform> --count <n> [--with-analytics] [--import-carousels] [--surface <s>] [--media-type <t>]` | Start an async import of an account's recent posts (post history) into bundle.social. Platforms: FACEBOOK, INSTAGRAM, THREADS, TIKTOK, YOUTUBE, LINKEDIN, PINTEREST, REDDIT, MASTODON, BLUESKY. |
+| `posts:imports [-p <platform>]` | List post-history import statuses for the team. |
+| `posts:import:get <importId>` | Fetch a single post-history import. |
+| `posts:import:posts -p <platform> [--limit <n>] [--offset <n>]` | List imported posts (with analytics) for an account. |
+| `posts:import:delete-posts --id <id...>` | Bulk-delete imported posts (and their analytics). |
+| `posts:import:retry <importId>` | Retry a failed post-history import. |
+| `comments:import --post-id <id> -p <platform>` | Start an async import of a post's comments. Platforms: FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, TIKTOK, REDDIT, THREADS, MASTODON, BLUESKY. |
+| `comments:imports [--post-id <id>] [--status <s>]` | List comment-import jobs. |
+| `comments:import:get <importId>` | Fetch a single comment-import job. |
+| `comments:import:comments --post-id <id> [-p <platform>] [--social-account-id <id>]` | List the comments fetched for a post via `comments:import`. |
+
+### CSV bulk import
+
+| Command | Description |
+|---|---|
+| `posts:csv --file <path>` | Upload a CSV file for an async bulk post import. |
+| `posts:csv:list [--limit <n>] [--offset <n>]` | List CSV import history. |
+| `posts:csv:get <importId>` | Fetch a CSV import's details. |
+| `posts:csv:status <importId>` | CSV import processing status. |
+| `posts:csv:rows <importId> [--status SUCCESS\|FAILED]` | Per-row results of a CSV import. |
+
+```bash
+bundle-social posts:import -p instagram --count 25 --with-analytics
+bundle-social posts:csv --file ./bulk-posts.csv
+bundle-social posts:csv:rows csv_abc123 --status FAILED
+```
+
 ### `media:upload <path-or-url>`
 
 Upload a media file (image, video or document) from a local path or a public `https://` URL. Returns the upload object — its `id` can be passed to `posts:create` / `posts:schedule` via `--data`.
@@ -185,13 +238,55 @@ ID=$(bundle-social media:upload ./hero.png | jq -r .id)
 bundle-social posts:create --data "{\"TWITTER\":{\"text\":\"hi\",\"uploadIds\":[\"$ID\"]}}"
 ```
 
+For files larger than 90 MB use the chunked flow:
+
+```bash
+bundle-social media:upload-large ./huge-video.mp4   # init → PUT → finalize, returns the upload object
+```
+
+### `media:list` / `media:get <id>` / `media:delete <id>` / `media:delete-many --id <id...>`
+
+```bash
+bundle-social media:list --type video --status UNUSED
+bundle-social media:get up_abc123
+bundle-social media:delete up_abc123
+bundle-social media:delete-many --id up_a --id up_b --id up_c
+```
+
 ### `analytics:post <id>`
 
-Engagement metrics for a single post.
+Engagement metrics for a single post. Add `--raw` for the unprocessed provider payload.
 
 ```bash
 bundle-social analytics:post post_abc123
 bundle-social analytics:post post_abc123 --platform instagram
+bundle-social analytics:post post_abc123 --raw
+```
+
+### `analytics:account -p <platform>`
+
+Analytics (follower/engagement snapshots) for a connected social account on the team. Add `--raw` for the unprocessed provider payload.
+
+```bash
+bundle-social analytics:account -p instagram
+bundle-social analytics:account -p tiktok --raw
+```
+
+### `analytics:bulk -p <platform> --post-id <id...>`
+
+Analytics for multiple posts in one request (max 60 posts, paginated 20 per page).
+
+```bash
+bundle-social analytics:bulk -p youtube --post-id post_a --post-id post_b --post-id post_c
+```
+
+### `analytics:refresh`
+
+Force-refresh analytics — pass `--post-id` to refresh a post, otherwise `-p/--platform` to refresh a connected social account.
+
+```bash
+bundle-social analytics:refresh --post-id post_abc123
+bundle-social analytics:refresh -p instagram
 ```
 
 ### `analytics:summary`
@@ -204,6 +299,24 @@ bundle-social analytics:summary --from 2026-05-01 --to 2026-06-01 --pretty
 ```
 
 (Analytics are not available for X/Twitter, Discord and Slack — those integrations are listed with `analytics: null`.)
+
+### Teams & organization
+
+| Command | Description |
+|---|---|
+| `teams:list [--limit <n>] [--offset <n>] [-q <text>]` | List teams in the organization. |
+| `teams:get <id>` | Fetch a team (org, social accounts, bio). |
+| `teams:create --name <name> [--avatar-url <url>] [--copy-team-id <id>]` | Create a team (or `--data`/`--data-file`). |
+| `teams:update <id> [--name <name>] [--avatar-url <url>]` | Update a team — only the fields you pass change. |
+| `teams:delete <id>` | Delete a team. |
+| `org:get` | Fetch your organization — id, name, plan limits, feature flags, teams. |
+| `org:usage [--page <n>] [--page-size <n>] [--social-account-type <p>] [--social-account-id <id>]` | Posts / comments / uploads usage plus the per-account imports breakdown (scoped to `--team-id`/`BUNDLESOCIAL_TEAM_ID` when set). |
+
+```bash
+bundle-social teams:list --pretty
+bundle-social teams:create --name "Marketing"
+bundle-social org:usage
+```
 
 ### `doctor`
 

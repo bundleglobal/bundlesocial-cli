@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import type { AnalyticsGetSocialAccountAnalyticsData } from "bundlesocial";
 import { safeAction } from "../program";
 import { createContext, resolveTeamId } from "../context";
-import { emitResult, errorSummary } from "../output";
+import { CliError, emitResult, errorSummary } from "../output";
 import { isAnalyticsPlatform, normalizeAnalyticsPlatform } from "../platforms";
 
 type AnalyticsPlatform = AnalyticsGetSocialAccountAnalyticsData["platformType"];
@@ -21,17 +21,93 @@ export function registerAnalyticsCommands(program: Command): void {
   program
     .command("analytics:post")
     .summary("engagement metrics for a single post")
-    .description("Get engagement metrics for a single post by its bundle.social id.")
+    .description("Get engagement metrics for a single post by its bundle.social id. Use --raw for the unprocessed provider payload.")
     .argument("<post-id>", "post id")
     .option("-p, --platform <platform>", "limit to a single platform (e.g. instagram, tiktok, youtube)")
+    .option("--raw", "return the raw provider analytics payload instead of the normalized metrics")
     .action(
-      safeAction(async (postId: string, opts: { platform?: string }, command: Command) => {
+      safeAction(async (postId: string, opts: { platform?: string; raw?: boolean }, command: Command) => {
         const ctx = createContext(command.optsWithGlobals());
-        const response = await ctx.client.analytics.analyticsGetPostAnalytics({
-          postId,
-          platformType: opts.platform ? normalizeAnalyticsPlatform(opts.platform) : undefined,
-        });
+        const platformType = opts.platform ? normalizeAnalyticsPlatform(opts.platform) : undefined;
+        const response = opts.raw
+          ? await ctx.client.analytics.analyticsGetPostAnalyticsRaw({ postId, platformType })
+          : await ctx.client.analytics.analyticsGetPostAnalytics({ postId, platformType });
         emitResult(response, ctx.pretty);
+      }),
+    );
+
+  program
+    .command("analytics:account")
+    .summary("analytics for a connected social account")
+    .description("Get analytics (follower/engagement snapshots) for a connected social account on the team. Use --raw for the unprocessed provider payload.")
+    .requiredOption("-p, --platform <platform>", "platform of the social account (e.g. instagram, tiktok, youtube)")
+    .option("--raw", "return the raw provider analytics payload instead of the normalized snapshots")
+    .action(
+      safeAction(async (opts: { platform: string; raw?: boolean }, command: Command) => {
+        const ctx = createContext(command.optsWithGlobals());
+        const teamId = await resolveTeamId(ctx);
+        const platformType = normalizeAnalyticsPlatform(opts.platform) as AnalyticsPlatform;
+        const response = opts.raw
+          ? await ctx.client.analytics.analyticsGetSocialAccountAnalyticsRaw({ teamId, platformType })
+          : await ctx.client.analytics.analyticsGetSocialAccountAnalytics({ teamId, platformType });
+        emitResult(response, ctx.pretty);
+      }),
+    );
+
+  program
+    .command("analytics:bulk")
+    .summary("engagement metrics for multiple posts")
+    .description("Get analytics for multiple posts in one request (max 60 posts, paginated 20 per page). Pass --post-id once per post.")
+    .requiredOption("-p, --platform <platform>", "platform of the posts (e.g. instagram, tiktok, youtube)")
+    .requiredOption("--post-id <id...>", "post id; repeatable (max 60)")
+    .option("--page <n>", "page number")
+    .option("--limit <n>", "items per page")
+    .action(
+      safeAction(async (opts: { platform: string; postId: string[]; page?: string; limit?: string }, command: Command) => {
+        const ctx = createContext(command.optsWithGlobals());
+        emitResult(
+          await ctx.client.analytics.analyticsGetBulkPostAnalytics({
+            postIds: opts.postId,
+            platformType: normalizeAnalyticsPlatform(opts.platform) as AnalyticsPlatform,
+            page: opts.page !== undefined ? Number(opts.page) : undefined,
+            limit: opts.limit !== undefined ? Number(opts.limit) : undefined,
+          }),
+          ctx.pretty,
+        );
+      }),
+    );
+
+  program
+    .command("analytics:refresh")
+    .summary("force-refresh analytics")
+    .description("Force a refresh of analytics. Pass --post-id to refresh a post's analytics; otherwise pass --platform to refresh a connected social account's analytics.")
+    .option("--post-id <id>", "post id to force-refresh analytics for")
+    .option("-p, --platform <platform>", "platform of the social account (or, with --post-id, the post's platform)")
+    .action(
+      safeAction(async (opts: { postId?: string; platform?: string }, command: Command) => {
+        const ctx = createContext(command.optsWithGlobals());
+        if (opts.postId) {
+          emitResult(
+            await ctx.client.analytics.analyticsForcePostAnalytics({
+              requestBody: {
+                postId: opts.postId,
+                platformType: opts.platform ? (normalizeAnalyticsPlatform(opts.platform) as AnalyticsPlatform) : undefined,
+              },
+            }),
+            ctx.pretty,
+          );
+          return;
+        }
+        if (!opts.platform) {
+          throw new CliError("NO_TARGET", "Pass --post-id to refresh a post, or --platform to refresh a connected social account.");
+        }
+        const teamId = await resolveTeamId(ctx);
+        emitResult(
+          await ctx.client.analytics.analyticsForceSocialAccountAnalytics({
+            requestBody: { teamId, platformType: normalizeAnalyticsPlatform(opts.platform) as AnalyticsPlatform },
+          }),
+          ctx.pretty,
+        );
       }),
     );
 

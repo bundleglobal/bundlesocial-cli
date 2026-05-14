@@ -38,6 +38,7 @@ The targeted platforms are inferred from the object's keys, so you don't need
 - `post-and-first-comment.sh` — publish a post, then add a first comment to it.
 - `schedule-campaign.sh` — schedule several `--data-file` posts at given dates.
 - `reddit-prepared-post.sh` — fetch a subreddit's requirements + flairs, then post with the right flair.
+- `import-history.sh` — import an account's recent posts (with analytics), poll the import, then list the imported posts.
 
 ```bash
 bash examples/scripts/post-and-first-comment.sh

@@ -1,10 +1,18 @@
 import type { Command } from "commander";
-import type { CommentCreateData, CommentGetListData } from "bundlesocial";
+import type {
+  CommentCreateData,
+  CommentGetListData,
+  CommentImportCreateData,
+  CommentImportGetFetchedCommentsData,
+  CommentImportGetListData,
+} from "bundlesocial";
 import { safeAction } from "../program";
 import { createContext, resolveTeamId, type CliContext } from "../context";
 import { CliError, emitResult } from "../output";
 import { COMMENT_PLATFORMS, type CommentPlatform, isCommentPlatform, normalizePlatform } from "../platforms";
 import { resolveTargetPlatforms, toIsoDate } from "../post-data";
+
+type CommentImportPlatform = NonNullable<CommentImportCreateData["requestBody"]>["socialAccountType"];
 
 type CommentCreateBody = NonNullable<CommentCreateData["requestBody"]>;
 type CommentData = NonNullable<CommentCreateBody["data"]>;
@@ -177,5 +185,97 @@ export function registerCommentsCommands(program: Command): void {
         const ctx = createContext(command.optsWithGlobals());
         emitResult(await ctx.client.comment.commentDelete({ id }), ctx.pretty);
       }),
+    );
+
+  program
+    .command("comments:import")
+    .summary("start importing comments for a post")
+    .description(
+      "Start an async import of the comments on a post for one platform. Supported: FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, TIKTOK, REDDIT, THREADS, MASTODON, BLUESKY.",
+    )
+    .requiredOption("--post-id <id>", "id of the post whose comments to import")
+    .requiredOption("-p, --platform <platform>", "platform to import comments from")
+    .action(
+      safeAction(async (opts: { postId: string; platform: string }, command: Command) => {
+        const ctx = createContext(command.optsWithGlobals());
+        const teamId = await resolveTeamId(ctx);
+        emitResult(
+          await ctx.client.comment.commentImportCreate({
+            requestBody: {
+              teamId,
+              postId: opts.postId,
+              socialAccountType: normalizePlatform(opts.platform) as CommentImportPlatform,
+            },
+          }),
+          ctx.pretty,
+        );
+      }),
+    );
+
+  program
+    .command("comments:imports")
+    .summary("list comment imports")
+    .description("List comment-import jobs for the team, optionally filtered by post and status.")
+    .option("--post-id <id>", "only imports for this post")
+    .option("--status <status>", "filter: PENDING | FETCHING | RETRYING | COMPLETED | SKIPPED | FAILED | RATE_LIMITED")
+    .option("--limit <n>", "max number of imports to return")
+    .option("--offset <n>", "number of imports to skip")
+    .action(
+      safeAction(async (opts: { postId?: string; status?: string; limit?: string; offset?: string }, command: Command) => {
+        const ctx = createContext(command.optsWithGlobals());
+        const teamId = await resolveTeamId(ctx);
+        const query: CommentImportGetListData = {
+          teamId,
+          postId: opts.postId,
+          status: opts.status ? (opts.status.trim().toUpperCase() as CommentImportGetListData["status"]) : undefined,
+          limit: opts.limit !== undefined ? Number(opts.limit) : undefined,
+          offset: opts.offset !== undefined ? Number(opts.offset) : undefined,
+        };
+        emitResult(await ctx.client.comment.commentImportGetList(query), ctx.pretty);
+      }),
+    );
+
+  program
+    .command("comments:import:get")
+    .summary("fetch a comment import")
+    .description("Fetch a single comment-import job by its id.")
+    .argument("<importId>", "comment import id")
+    .action(
+      safeAction(async (importId: string, _opts: unknown, command: Command) => {
+        const ctx = createContext(command.optsWithGlobals());
+        emitResult(await ctx.client.comment.commentImportGetById({ importId }), ctx.pretty);
+      }),
+    );
+
+  program
+    .command("comments:import:comments")
+    .summary("list fetched comments for a post")
+    .description("List the comments fetched (via comments:import) for a post, optionally filtered by platform / connected account.")
+    .requiredOption("--post-id <id>", "id of the post")
+    .option("-p, --platform <platform>", "limit to a single platform")
+    .option("--social-account-id <id>", "limit to a single connected account id")
+    .option("--limit <n>", "max number of comments to return")
+    .option("--offset <n>", "number of comments to skip")
+    .action(
+      safeAction(
+        async (
+          opts: { postId: string; platform?: string; socialAccountId?: string; limit?: string; offset?: string },
+          command: Command,
+        ) => {
+          const ctx = createContext(command.optsWithGlobals());
+          const teamId = await resolveTeamId(ctx);
+          const query: CommentImportGetFetchedCommentsData = {
+            teamId,
+            postId: opts.postId,
+            platform: opts.platform
+              ? (normalizePlatform(opts.platform) as CommentImportGetFetchedCommentsData["platform"])
+              : undefined,
+            socialAccountId: opts.socialAccountId,
+            limit: opts.limit !== undefined ? Number(opts.limit) : undefined,
+            offset: opts.offset !== undefined ? Number(opts.offset) : undefined,
+          };
+          emitResult(await ctx.client.comment.commentImportGetFetchedComments(query), ctx.pretty);
+        },
+      ),
     );
 }

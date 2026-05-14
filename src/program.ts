@@ -3,9 +3,13 @@ import pkg from "../package.json";
 import { emitError } from "./output";
 import { registerIntegrationsCommands } from "./commands/integrations";
 import { registerPostsCommands } from "./commands/posts";
+import { registerPostImportsCommands } from "./commands/post-imports";
+import { registerPostCsvCommands } from "./commands/post-csv";
 import { registerCommentsCommands } from "./commands/comments";
 import { registerMediaCommands } from "./commands/media";
 import { registerAnalyticsCommands } from "./commands/analytics";
+import { registerTeamsCommands } from "./commands/teams";
+import { registerOrgCommands } from "./commands/org";
 import { registerDoctorCommand } from "./commands/doctor";
 
 export const VERSION: string = pkg.version;
@@ -68,9 +72,13 @@ export function buildProgram(): Command {
 
   registerIntegrationsCommands(program);
   registerPostsCommands(program);
+  registerPostImportsCommands(program);
+  registerPostCsvCommands(program);
   registerCommentsCommands(program);
   registerMediaCommands(program);
   registerAnalyticsCommands(program);
+  registerTeamsCommands(program);
+  registerOrgCommands(program);
   registerDoctorCommand(program);
 
   for (const subcommand of program.commands) {
@@ -88,8 +96,12 @@ Examples:
   $ bundle-social posts:schedule -c "Tomorrow 9am UTC" -i linkedin -d 2026-06-01T09:00:00Z
   $ bundle-social posts:list --status SCHEDULED --limit 10 --pretty
   $ bundle-social media:upload https://example.com/banner.png
+  $ bundle-social media:list --type video --status UNUSED
   $ bundle-social analytics:post post_123
+  $ bundle-social analytics:account -p instagram
   $ bundle-social analytics:summary --from 2026-05-01 --to 2026-06-01
+  $ bundle-social teams:list --pretty
+  $ bundle-social org:usage
 
 Docs: https://docs.bundle.social   SDK: https://www.npmjs.com/package/bundlesocial`,
   );
