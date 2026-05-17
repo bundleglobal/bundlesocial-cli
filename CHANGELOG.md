@@ -1,3 +1,17 @@
+# 1.0.0 (2026-05-17)
+
+
+### Bug Fixes
+
+* semantic release ([2db1b25](https://github.com/bundleglobal/bundlesocial-cli/commit/2db1b25e220bc0e0bd7eb640d8edbed660e4d762))
+
+
+### Features
+
+* additional methods ([d5e785a](https://github.com/bundleglobal/bundlesocial-cli/commit/d5e785a28de359cf2005ab35841c2d858798d4fb))
+* bundle.social CLI v1 ([6edabda](https://github.com/bundleglobal/bundlesocial-cli/commit/6edabda023616c3f98fec63392c867cc424ad1bd))
+* update comment ([8d9831c](https://github.com/bundleglobal/bundlesocial-cli/commit/8d9831ce6d91d05d2c65b6a03dd735c28e60a3fc))
+
 # Changelog
 
 All notable changes to `bundlesocial-cli` are documented here. This file is
