@@ -1,6 +1,6 @@
 {
   "name": "bundlesocial-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Command-line interface for the bundle.social social-media API — agent-friendly, JSON-by-default.",
   "keywords": [
     "bundle.social",

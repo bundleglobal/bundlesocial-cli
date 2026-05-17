@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.0.0...v1.0.1) (2026-05-17)
+
+
+### Bug Fixes
+
+* build before release ([12ea959](https://github.com/bundleglobal/bundlesocial-cli/commit/12ea959d0e2d62884b4a3348fec3bc492c5f6267))
+
 # 1.0.0 (2026-05-17)
 
 
