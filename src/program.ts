@@ -10,6 +10,7 @@ import { registerMediaCommands } from "./commands/media";
 import { registerAnalyticsCommands } from "./commands/analytics";
 import { registerTeamsCommands } from "./commands/teams";
 import { registerOrgCommands } from "./commands/org";
+import { registerPlatformsCommands } from "./commands/platforms";
 import { registerDoctorCommand } from "./commands/doctor";
 
 export const VERSION: string = pkg.version;
@@ -79,6 +80,7 @@ export function buildProgram(): Command {
   registerAnalyticsCommands(program);
   registerTeamsCommands(program);
   registerOrgCommands(program);
+  registerPlatformsCommands(program);
   registerDoctorCommand(program);
 
   for (const subcommand of program.commands) {
@@ -90,6 +92,8 @@ export function buildProgram(): Command {
     `
 Examples:
   $ bundle-social doctor
+  $ bundle-social platforms:describe reddit
+  $ bundle-social platforms:describe tiktok --operation post
   $ bundle-social integrations:list --pretty
   $ bundle-social posts:create -c "Hello from the CLI" -i x -i bluesky
   $ bundle-social posts:create -c "Launch day" -i tiktok -m ./demo.mp4 --platform-settings '{"TIKTOK":{"privacy":"PUBLIC_TO_EVERYONE"}}'

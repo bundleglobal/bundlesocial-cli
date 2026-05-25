@@ -214,6 +214,7 @@ describe("meta", () => {
       "teams:delete",
       "org:get",
       "org:usage",
+      "platforms:describe",
       "doctor",
     ]) {
       expect(stdout).toContain(command);
@@ -664,6 +665,60 @@ describe("integrations:tools / integrations:trigger", () => {
     const { json, exitCode } = await runCli(["integrations:trigger", "bogus:thing"]);
     expect(exitCode).toBe(1);
     expect(json).toMatchObject({ error: { code: "UNKNOWN_INTEGRATION_TOOL" } });
+  });
+});
+
+// --- platforms:describe ------------------------------------------------------
+
+describe("platforms:describe", () => {
+  it("describes a single platform by alias, with post + comment schemas", async () => {
+    const { json, exitCode } = await runCli(["platforms:describe", "reddit"]);
+    expect(exitCode).toBe(0);
+    const result = json as {
+      platform: {
+        platform: string;
+        capabilities: { posting: boolean; comments: boolean };
+        post: { fields: Array<{ name: string; required: boolean }> };
+        comment: { fields: Array<{ name: string }> };
+      };
+      mediaNotes: string[];
+    };
+    expect(result.platform.platform).toBe("REDDIT");
+    expect(result.platform.post.fields.find((f) => f.name === "sr")?.required).toBe(true);
+    expect(result.platform.comment.fields.map((f) => f.name)).toEqual(["text"]);
+    expect(result.mediaNotes.length).toBeGreaterThan(0);
+  });
+
+  it("works without an API key (offline reference)", async () => {
+    delete process.env.BUNDLESOCIAL_API_KEY;
+    const { exitCode, json } = await runCli(["platforms:describe", "tiktok"]);
+    expect(exitCode).toBe(0);
+    expect((json as { platform: { platform: string } }).platform.platform).toBe("TIKTOK");
+  });
+
+  it("normalizes aliases (x -> TWITTER) and marks comments unsupported", async () => {
+    const { json } = await runCli(["platforms:describe", "x", "--operation", "comment"]);
+    const result = json as { platform: { platform: string; comment: { supported?: boolean }; post?: unknown } };
+    expect(result.platform.platform).toBe("TWITTER");
+    expect(result.platform.comment.supported).toBe(false);
+    expect(result.platform.post).toBeUndefined();
+  });
+
+  it("returns every platform when none is given", async () => {
+    const { json } = await runCli(["platforms:describe"]);
+    expect((json as { platforms: unknown[] }).platforms).toHaveLength(14);
+  });
+
+  it("errors on an unknown platform", async () => {
+    const { json, exitCode } = await runCli(["platforms:describe", "myspace"]);
+    expect(exitCode).toBe(1);
+    expect(json).toMatchObject({ error: { code: "UNKNOWN_PLATFORM" } });
+  });
+
+  it("errors on an invalid --operation", async () => {
+    const { json, exitCode } = await runCli(["platforms:describe", "reddit", "--operation", "dm"]);
+    expect(exitCode).toBe(1);
+    expect(json).toMatchObject({ error: { code: "INVALID_OPERATION" } });
   });
 });
 

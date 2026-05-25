@@ -177,6 +177,16 @@ bundle-social integrations:trigger youtube:categories --data '{"regionCode":"US"
 bundle-social integrations:trigger linkedin:mentions --data '{"q":"Anthropic","scope":"organizations"}'
 ```
 
+### `platforms:describe [platform]`
+
+Look up the exact per-platform `data.<PLATFORM>` field schema — for posting **and** commenting — so you build a correct `--platform-settings` / `--data` object instead of guessing. Each field reports its name, type, whether it's required and notes; each platform also reports its capabilities (posting / comments / analytics / comment imports) and a ready-to-use example. This command is offline — it needs no API key.
+
+```bash
+bundle-social platforms:describe reddit                 # one platform, posts + comments
+bundle-social platforms:describe tiktok --operation post # narrow to the post schema
+bundle-social platforms:describe                        # every platform
+```
+
 ### Managing social accounts
 
 | Command | Description |
@@ -336,11 +346,11 @@ bundle-social doctor --pretty
 - **stderr** carries human-readable progress (`Uploading media file: …`) and, with `--pretty`, a styled error line. Never parse stderr.
 - On error: exit code `1` and `{ "error": { "code": "…", "message": "…", "details"?: … } }` on stdout.
 
-Common error codes: `MISSING_API_KEY`, `TEAM_ID_REQUIRED`, `NO_TARGET`, `NO_CONTENT`, `NOTHING_TO_UPDATE`, `UNKNOWN_PLATFORM`, `INTEGRATION_NOT_FOUND`, `COMMENTS_NOT_SUPPORTED`, `UNKNOWN_INTEGRATION_TOOL`, `MISSING_PARAMS`, `INVALID_JSON`, `INVALID_DATE`, `MEDIA_NOT_FOUND`, `FILE_NOT_FOUND`, `HTTP_<status>` (an error returned by the API — `details` includes the response body), `UNEXPECTED_ERROR`. Set `BUNDLESOCIAL_DEBUG=1` to include stack traces in `details`.
+Common error codes: `MISSING_API_KEY`, `TEAM_ID_REQUIRED`, `NO_TARGET`, `NO_CONTENT`, `NOTHING_TO_UPDATE`, `UNKNOWN_PLATFORM`, `INVALID_OPERATION`, `INTEGRATION_NOT_FOUND`, `COMMENTS_NOT_SUPPORTED`, `UNKNOWN_INTEGRATION_TOOL`, `MISSING_PARAMS`, `INVALID_JSON`, `INVALID_DATE`, `MEDIA_NOT_FOUND`, `FILE_NOT_FOUND`, `HTTP_<status>` (an error returned by the API — `details` includes the response body), `UNEXPECTED_ERROR`. Set `BUNDLESOCIAL_DEBUG=1` to include stack traces in `details`.
 
 ## References & examples
 
-- **[`PROVIDER_SETTINGS.md`](./PROVIDER_SETTINGS.md)** — the exhaustive per-platform field reference for `--platform-settings` / `--data` (every accepted `data.<PLATFORM>` field, with types, required fields and minimal JSON examples).
+- **[`PROVIDER_SETTINGS.md`](./PROVIDER_SETTINGS.md)** — the exhaustive per-platform field reference for `--platform-settings` / `--data` (every accepted `data.<PLATFORM>` field, with types, required fields and minimal JSON examples). The same data is queryable on the command line with `platforms:describe`.
 - **[`SKILL.md`](./SKILL.md)** — the OpenClaw / agent skill: command reference, per-platform notes, worked workflows, failure modes. Install into an agent runtime with `npx skills add bundleglobal/bundlesocial-cli`.
 - **[`examples/`](./examples/README.md)** — ready-to-run `data` JSON templates (for `--data-file`) and shell recipes (`post-and-first-comment.sh`, `schedule-campaign.sh`, `reddit-prepared-post.sh`).
 

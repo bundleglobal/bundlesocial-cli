@@ -81,6 +81,7 @@ All commands accept the global flags `--api-key <key>`, `--api-url <url>`, `--te
 | `teams:list` / `teams:get <id>` / `teams:create --name <name>` / `teams:update <id>` / `teams:delete <id>` | Manage the teams in your organization. |
 | `org:get` | Fetch your organization — id, name, plan limits, feature flags, teams. |
 | `org:usage [--page <n>] [--page-size <n>] [--social-account-type <p>] [--social-account-id <id>]` | Posts/comments/uploads usage + per-account imports breakdown. |
+| `platforms:describe [platform] [--operation post\|comment]` | Look up the exact per-platform `data.<PLATFORM>` field schema for posts **and** comments — name, type, required flag, notes, capabilities and a ready-to-use example. Omit the platform for all 14. Offline — no API key needed. **Run it before composing a non-trivial `--platform-settings` / `--data` object.** |
 | `doctor` | Self-diagnostic JSON. |
 
 ### Composing a post (`posts:create` / `posts:schedule` / `posts:update`)
@@ -105,7 +106,7 @@ Platform name aliases: `x`/`twitter`, `tiktok`, `youtube`/`yt`, `instagram`/`ig`
 
 ## Per-platform composition notes
 
-When you target a platform, put platform-specific fields under that platform's key in `--platform-settings` (or `--data`). bundle.social fills the rest. The **exhaustive field reference for every platform** (every accepted `data.<PLATFORM>` field, with types, required fields and minimal JSON examples) is in [`PROVIDER_SETTINGS.md`](./PROVIDER_SETTINGS.md) — read it before composing anything non-trivial. The summary below covers the constraints you hit most often:
+When you target a platform, put platform-specific fields under that platform's key in `--platform-settings` (or `--data`). bundle.social fills the rest. The **exhaustive field reference for every platform** (every accepted `data.<PLATFORM>` field, with types, required fields and minimal JSON examples) is in [`PROVIDER_SETTINGS.md`](./PROVIDER_SETTINGS.md), or query it on demand with `platforms:describe <platform>` (offline, no API key) — check one before composing anything non-trivial. The summary below covers the constraints you hit most often:
 
 - **X / Twitter (`x`)** — `text` ~280 chars (longer if the connected account is X Premium). Up to 4 images **or** 1 video/GIF. Optional `replySettings`: `EVERYONE | FOLLOWING | MENTIONED_USERS | SUBSCRIBERS | VERIFIED`. Threads: post the first tweet, then add replies as comments. No analytics surface.
 - **TikTok (`tiktok`)** — **`privacy` is effectively required**: `PUBLIC_TO_EVERYONE | MUTUAL_FOLLOW_FRIENDS | FOLLOWER_OF_CREATOR | SELF_ONLY`. `type`: `VIDEO` (1 video) or `IMAGE` (photo carousel; set `photoCoverIndex`). Optional disclosure flags `isBrandContent` / `isOrganicBrandContent`. Video: MP4/MOV/WEBM, up to ~10 min, ≥540p, portrait 9:16 recommended.
