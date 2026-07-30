@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.1.0...v1.2.0) (2026-07-30)
+
+
+### Features
+
+* catch up with bundle.social API and SDK 2.61.0 ([181ba02](https://github.com/bundleglobal/bundlesocial-cli/commit/181ba02039dfb5ddd046fa389c2c07e32eb1ea35))
+
 # [1.1.0](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.0.1...v1.1.0) (2026-05-25)
 
 
