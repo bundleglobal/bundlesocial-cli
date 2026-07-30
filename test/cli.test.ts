@@ -706,7 +706,7 @@ describe("platforms:describe", () => {
 
   it("returns every platform when none is given", async () => {
     const { json } = await runCli(["platforms:describe"]);
-    expect((json as { platforms: unknown[] }).platforms).toHaveLength(14);
+    expect((json as { platforms: unknown[] }).platforms).toHaveLength(15);
   });
 
   it("errors on an unknown platform", async () => {

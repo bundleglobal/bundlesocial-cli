@@ -61,4 +61,25 @@ export function registerOrgCommands(program: Command): void {
         },
       ),
     );
+
+  program
+    .command("org:daily-limits")
+    .summary("per-account daily posting/commenting limits")
+    .description(
+      "Show how much of a connected account's daily post and comment allowance has been used on a given day (defaults to today, UTC).",
+    )
+    .requiredOption("--social-account-id <id>", "connected social account id (see integrations:list)")
+    .option("--date <yyyy-mm-dd>", "day to report on (defaults to today)")
+    .action(
+      safeAction(async (opts: { socialAccountId: string; date?: string }, command: Command) => {
+        const ctx = createContext(command.optsWithGlobals());
+        emitResult(
+          await ctx.client.organization.organizationGetDailyLimitsUsage({
+            socialAccountId: opts.socialAccountId,
+            ...(opts.date ? { date: opts.date } : {}),
+          }),
+          ctx.pretty,
+        );
+      }),
+    );
 }

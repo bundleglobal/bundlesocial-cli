@@ -2,6 +2,7 @@ import type { Command } from "commander";
 import type {
   CommentCreateData,
   CommentGetListData,
+  CommentImportActionFetchedCommentData,
   CommentImportCreateData,
   CommentImportGetFetchedCommentsData,
   CommentImportGetListData,
@@ -17,12 +18,16 @@ type CommentUpdateBody = NonNullable<CommentUpdateData["requestBody"]>;
 
 type CommentImportPlatform = NonNullable<CommentImportCreateData["requestBody"]>["socialAccountType"];
 
+type FetchedCommentAction = NonNullable<CommentImportActionFetchedCommentData["requestBody"]>["action"];
+
 type CommentCreateBody = NonNullable<CommentCreateData["requestBody"]>;
 type CommentData = NonNullable<CommentCreateBody["data"]>;
 type CommentSocialAccountTypes = NonNullable<CommentCreateBody["socialAccountTypes"]>;
 
 interface CreateCommentOptions {
-  postId: string;
+  postId?: string;
+  importedPostId?: string;
+  fetchedParentCommentId?: string;
   content?: string[];
   integrationId?: string[];
   platform?: string[];
@@ -74,9 +79,11 @@ export function registerCommentsCommands(program: Command): void {
     .command("comments:create")
     .summary("post a comment (or a chain of comments) on a post")
     .description(
-      "Post one or more comments on an existing post. Pass --content multiple times to create a chain (the first replies to the post, each subsequent one replies to the previous comment) — useful for X-style threads via comments. Comments are supported on TIKTOK, YOUTUBE, INSTAGRAM, FACEBOOK, THREADS, LINKEDIN, REDDIT, MASTODON, DISCORD, SLACK, BLUESKY.",
+      "Post one or more comments on a post you created (--post-id) or on a post brought in by posts:import (--imported-post-id). Pass --content multiple times to create a chain (the first replies to the post, each subsequent one replies to the previous comment) — useful for X-style threads via comments. Use --fetched-parent-comment-id to reply to a comment pulled in by comments:import. Comments are supported on TIKTOK, YOUTUBE, INSTAGRAM, FACEBOOK, THREADS, LINKEDIN, REDDIT, MASTODON, DISCORD, SLACK, BLUESKY.",
     )
-    .requiredOption("--post-id <id>", "id of the post to comment on")
+    .option("--post-id <id>", "id of the bundle.social post to comment on")
+    .option("--imported-post-id <id>", "id of an imported (post-history) post to comment on instead of --post-id")
+    .option("--fetched-parent-comment-id <id>", "reply to a comment fetched by comments:import (its imported-comment id)")
     .option("-c, --content <text...>", "comment text; repeat to create a chain of replies")
     .option("-i, --integration-id <id...>", "target: a connected integration id OR a comment-capable platform name/alias. Repeatable. Defaults to the post's platforms.")
     .option("-p, --platform <platform...>", "alias for --integration-id that only accepts platform names. Repeatable.")
@@ -89,9 +96,21 @@ export function registerCommentsCommands(program: Command): void {
         const teamId = await resolveTeamId(ctx);
         const contents = (opts.content ?? []).filter((text) => text.trim().length > 0);
         if (contents.length === 0) throw new CliError("NO_CONTENT", "Provide at least one --content for the comment.");
+        if (!opts.postId && !opts.importedPostId) {
+          throw new CliError("NO_POST", "Pass --post-id (a bundle.social post) or --imported-post-id (a post brought in by posts:import).");
+        }
 
         const rawTargets = [...(opts.integrationId ?? []), ...(opts.platform ?? [])];
-        const platforms = await resolveCommentPlatforms(ctx, teamId, opts.postId, rawTargets);
+        // An imported post has no bundle.social `data` to infer platforms from, so targets are explicit there.
+        const platforms = opts.postId
+          ? await resolveCommentPlatforms(ctx, teamId, opts.postId, rawTargets)
+          : assertCommentPlatforms(await resolveTargetPlatforms(ctx.client, teamId, rawTargets));
+        if (platforms.length === 0) {
+          throw new CliError(
+            "NO_TARGET",
+            "Pass --integration-id / --platform when commenting on an imported post (comment-capable platforms only).",
+          );
+        }
         const status: CommentCreateBody["status"] = opts.draft ? "DRAFT" : "SCHEDULED";
         const delayMinutes = Number(opts.delay ?? "0");
         const baseDate = opts.date ? new Date(toIsoDate(opts.date, "--date")) : new Date();
@@ -104,8 +123,12 @@ export function registerCommentsCommands(program: Command): void {
           const comment = await ctx.client.comment.commentCreate({
             requestBody: {
               teamId,
-              internalPostId: opts.postId,
+              ...(opts.postId ? { internalPostId: opts.postId } : { importedPostId: opts.importedPostId as string }),
               ...(parentCommentId ? { internalParentCommentId: parentCommentId } : {}),
+              // Only the first comment of a chain replies to the fetched comment; the rest chain off each other.
+              ...(!parentCommentId && opts.fetchedParentCommentId
+                ? { fetchedParentCommentId: opts.fetchedParentCommentId }
+                : {}),
               status,
               postDate,
               socialAccountTypes: platforms as CommentSocialAccountTypes,
@@ -302,6 +325,52 @@ export function registerCommentsCommands(program: Command): void {
         const ctx = createContext(command.optsWithGlobals());
         emitResult(await ctx.client.comment.commentImportGetById({ importId }), ctx.pretty);
       }),
+    );
+
+  program
+    .command("comments:retry")
+    .summary("retry a failed comment")
+    .description("Retry publishing a comment that ended in the ERROR state.")
+    .argument("<id>", "comment id")
+    .action(
+      safeAction(async (id: string, _opts: unknown, command: Command) => {
+        const ctx = createContext(command.optsWithGlobals());
+        emitResult(await ctx.client.comment.commentRetry({ id }), ctx.pretty);
+      }),
+    );
+
+  program
+    .command("comments:import:action")
+    .summary("moderate an imported comment")
+    .description(
+      "Act on a comment that was fetched by comments:import — delete, hide/unhide, like/unlike, or approve/reject it. Which actions a platform supports varies; DELETE and HIDE are the widely available ones.",
+    )
+    .argument("<commentId>", "id of the fetched (imported) comment")
+    .requiredOption(
+      "-a, --action <action>",
+      "DELETE | HIDE | UNHIDE | LIKE | UNLIKE | APPROVE | REJECT",
+    )
+    .option("--reason <text>", "optional reason recorded with the action")
+    .option("--ban-author", "also ban the comment's author, where the platform supports it")
+    .action(
+      safeAction(
+        async (commentId: string, opts: { action: string; reason?: string; banAuthor?: boolean }, command: Command) => {
+          const ctx = createContext(command.optsWithGlobals());
+          const teamId = await resolveTeamId(ctx);
+          emitResult(
+            await ctx.client.comment.commentImportActionFetchedComment({
+              commentId,
+              requestBody: {
+                teamId,
+                action: opts.action.trim().toUpperCase() as FetchedCommentAction,
+                ...(opts.reason !== undefined ? { reason: opts.reason } : {}),
+                ...(opts.banAuthor ? { banAuthor: true } : {}),
+              },
+            }),
+            ctx.pretty,
+          );
+        },
+      ),
     );
 
   program

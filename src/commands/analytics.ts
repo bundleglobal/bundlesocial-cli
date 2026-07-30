@@ -21,19 +21,36 @@ export function registerAnalyticsCommands(program: Command): void {
   program
     .command("analytics:post")
     .summary("engagement metrics for a single post")
-    .description("Get engagement metrics for a single post by its bundle.social id. Use --raw for the unprocessed provider payload.")
-    .argument("<post-id>", "post id")
+    .description(
+      "Get engagement metrics for a single post — either a post you created (its bundle.social id) or one pulled in by posts:import (--imported-post-id). Use --raw for the unprocessed provider payload.",
+    )
+    .argument("[post-id]", "post id (omit when using --imported-post-id)")
+    .option("--imported-post-id <id>", "analytics for an imported (post-history) post instead of a bundle.social post")
     .option("-p, --platform <platform>", "limit to a single platform (e.g. instagram, tiktok, youtube)")
     .option("--raw", "return the raw provider analytics payload instead of the normalized metrics")
     .action(
-      safeAction(async (postId: string, opts: { platform?: string; raw?: boolean }, command: Command) => {
-        const ctx = createContext(command.optsWithGlobals());
-        const platformType = opts.platform ? normalizeAnalyticsPlatform(opts.platform) : undefined;
-        const response = opts.raw
-          ? await ctx.client.analytics.analyticsGetPostAnalyticsRaw({ postId, platformType })
-          : await ctx.client.analytics.analyticsGetPostAnalytics({ postId, platformType });
-        emitResult(response, ctx.pretty);
-      }),
+      safeAction(
+        async (
+          postId: string | undefined,
+          opts: { importedPostId?: string; platform?: string; raw?: boolean },
+          command: Command,
+        ) => {
+          const ctx = createContext(command.optsWithGlobals());
+          if (!postId && !opts.importedPostId) {
+            throw new CliError("NO_POST", "Pass a post id, or --imported-post-id for a post brought in by posts:import.");
+          }
+          const platformType = opts.platform ? normalizeAnalyticsPlatform(opts.platform) : undefined;
+          const query = {
+            ...(postId ? { postId } : {}),
+            ...(opts.importedPostId ? { importedPostId: opts.importedPostId } : {}),
+            platformType,
+          };
+          const response = opts.raw
+            ? await ctx.client.analytics.analyticsGetPostAnalyticsRaw(query)
+            : await ctx.client.analytics.analyticsGetPostAnalytics(query);
+          emitResult(response, ctx.pretty);
+        },
+      ),
     );
 
   program

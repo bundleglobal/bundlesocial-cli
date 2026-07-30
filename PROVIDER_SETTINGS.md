@@ -38,6 +38,7 @@ bundle.social — use it for video cover frames when an offset isn't enough.
 | `text` | string | Post text. ~280 chars (longer if the connected account is X Premium). |
 | `uploadIds` | string[] | Up to 4 images **or** 1 video/GIF. |
 | `replySettings` | `EVERYONE` \| `FOLLOWING` \| `MENTIONED_USERS` \| `SUBSCRIBERS` \| `VERIFIED` | Who can reply. |
+| `isAiGenerated` | boolean | Adds X's "made with AI" label to a post with AI-generated media. |
 
 Threads: post the first tweet, then add the rest as replies with
 `comments:create --post-id <id> -c "..." -c "..."` (X threads go through the
@@ -57,6 +58,7 @@ comments API, not `data`). No analytics surface for X.
 | `labels` | (`!no-unauthenticated` \| `porn` \| `sexual` \| `nudity` \| `graphic-media`)[] | Self-labels / content warnings. |
 | `quoteUri` | string | AT-URI of a post to quote (`at://…/app.bsky.feed.post/<rkey>`). |
 | `externalUrl` / `externalTitle` / `externalDescription` | string | External link card. |
+| `thumbnail` | string (URL) | Image for the external link card. |
 | `videoAlt` | string | Alt text for a video embed. |
 
 ```json
@@ -84,9 +86,20 @@ comments API, not `data`). No analytics surface for X.
 | `text` | string | ~500 chars. |
 | `uploadIds` | string[] | Up to ~10 images, or 1 video. |
 | `mediaItems` | `{ uploadId, altText? }[]` | Per-image alt text (alternative to `uploadIds`). |
+| `topicTag` | string | One topic tag shown in the post header. 1–50 chars, no periods (`.`) or ampersands (`&`). |
+| `replyControl` | `everyone` \| `accounts_you_follow` \| `mentioned_only` \| `parent_post_author_only` \| `followers_only` | Who can reply. Threads defaults to `everyone`. |
+| `linkAttachment` | string (URL) | Link preview card. Text-only posts. |
+| `poll` | `{ optionA, optionB, optionC?, optionD? }` | 2–4 options, 1–25 chars each. Text-only posts, and not together with `gif`. |
+| `gif` | `{ gifId, provider?: "GIPHY" }` | GIF attachment. Text-only posts, and not together with `poll`. |
+| `allowlistedCountryCodes` | string[] | Restrict visibility to these ISO 3166-1 alpha-2 codes. Requires Meta account eligibility. |
+| `crosspostToInstagramStory` | boolean | Also share the post to the linked Instagram account as a Story. |
+| `crosspostToInstagramStoryDarkMode` | boolean | Cross-post the Instagram Story in dark mode. |
+
+Polls, GIFs and link attachments only work on text-only posts — Threads rejects
+them when `uploadIds` is set.
 
 ```json
-{ "THREADS": { "text": "Quick thought", "mediaItems": [{ "uploadId": "<id>", "altText": "chart" }] } }
+{ "THREADS": { "text": "Quick thought", "topicTag": "shipping", "replyControl": "everyone" } }
 ```
 
 ## LinkedIn — `data.LINKEDIN`
@@ -96,6 +109,7 @@ comments API, not `data`). No analytics surface for X.
 | **`text`** | string | Required. ~3000 chars. Works for a personal profile or a company page depending on which account the user connected. |
 | `uploadIds` | string[] | Images, a single video, or a document/PDF. |
 | `link` | string (URL) | For an article-preview post. |
+| `thumbnail` | string (URL) | Cover image. |
 | `mediaTitle` | string | Title for a video or document post (LinkedIn otherwise shows the post date under videos). |
 | `privacy` | `CONNECTIONS` \| `PUBLIC` \| `LOGGED_IN` \| `CONTAINER` | Visibility. |
 | `hideFromFeed` | boolean | Don't show in the main feed. |
@@ -141,8 +155,13 @@ Mentions: discover URNs with `integrations:trigger linkedin:mentions --data '{"q
 | `locationId` | string | A location id — discover with `integrations:trigger instagram:locations --data '{"q":"..."}'`. |
 | `autoFitImage` / `autoCropImage` | boolean | Let bundle.social fit/crop the image to a valid aspect ratio. |
 | `trialParams` | `{ graduationStrategy: "MANUAL" \| "SS_PERFORMANCE" }` | Reels only — trial reels are shown to non-followers first. |
+| `isPaidPartnership` | boolean | Adds the native "Paid partnership" label. Implied by `brandedContentSponsors`; use alone for a label without a named sponsor. |
+| `brandedContentSponsors` | string[] | Up to 2 Instagram usernames to tag as paid-partnership sponsors. Accounts connected via Facebook Login only. |
+| `musicSoundInfo` | `{ musicSoundId, musicSoundVolume?, videoOriginalSoundVolume? }` | Reels only — get an `audio_id` from `integrations:trigger instagram:audio --data '{"audioType":"music","searchQuery":"..."}'`. Volumes 0–100. |
+| `isAiGenerated` | boolean | Adds Instagram's AI content label. |
 
 Account types are connected via Facebook or directly via Instagram (`instagramConnectionMethod` on the integration).
+`brandedContentSponsors` and business discovery only work for accounts connected through Facebook Login.
 
 ```json
 { "INSTAGRAM": { "type": "REEL", "text": "BTS", "shareToFeed": true, "thumbnailOffset": 1500 } }
@@ -188,6 +207,8 @@ Account types are connected via Facebook or directly via Instagram (`instagramCo
 | `description` | string | Video description. |
 | `thumbnail` | string (URL) | Custom thumbnail (`type: VIDEO`). |
 | `privacy` | `PUBLIC` \| `UNLISTED` \| `PRIVATE` | Visibility. |
+| `defaultLanguage` | string (BCP-47) | Language of the title and description, e.g. `en` or `pl`. |
+| `defaultAudioLanguage` | string (BCP-47) | Language of the video's default audio track. |
 | `madeForKids` | boolean | Required-ish — YouTube needs you to declare this. |
 | `containsSyntheticMedia` | boolean | Mark AI-generated content. |
 | `hasPaidProductPlacement` | boolean | Declare paid placements. |
@@ -282,16 +303,35 @@ via the SDK's `misc.googleBusiness*` methods (`integrations:trigger gbp:location
 | `note` | string | Private note (not public). |
 | `thumbnail` | string (URL) | Cover image. |
 | `dominantColor` | string | Hex color used as a placeholder before the image loads. |
+| `isAiGenerated` | boolean | Adds Pinterest's AI disclosure label. |
 
 ```json
 { "PINTEREST": { "boardName": "Inspiration", "text": "New idea", "uploadIds": ["<id>"], "link": "https://bundle.social" } }
+```
+
+## Snapchat (Public Profile) — `data.SNAPCHAT`
+
+| Field | Type | Notes |
+|---|---|---|
+| `type` | `STORY` \| `SPOTLIGHT` | Default `STORY`. |
+| `uploadIds` | string[] | One image or video. Video: 5–180s, ≥540×960, up to 100 MB. Images are Story-only. |
+| `text` | string | Alias for `description` (Spotlight). ≤160 chars. |
+| `description` | string | Spotlight description. ≤160 chars. |
+| `locale` | string | Spotlight locale in `en_US` form. Default `en_US`. |
+| `skipSaveToProfile` | boolean | Spotlight only — don't save the post to the profile. |
+
+Requires a Snapchat Public Profile. There is no comments API surface for
+Snapchat; profile and content analytics are available.
+
+```json
+{ "SNAPCHAT": { "type": "SPOTLIGHT", "description": "Launch day", "locale": "en_US" } }
 ```
 
 ---
 
 ## Media notes (all platforms)
 
-- Images: JPG / PNG / WEBP / GIF. Video: MP4 / MOV / WEBM.
+- Images: JPG / PNG / WEBP / GIF. Video: MP4 / MOV / WEBM, up to 5 GB via the large-upload flow.
 - Upload media first (`media:upload <url|path>` → `id`), or let `-m` do it; then
   put ids in `uploadIds` (and `carouselItems[].uploadId` / `mediaItems[].uploadId`).
 - Large videos can take a while to process server-side after upload — a newly

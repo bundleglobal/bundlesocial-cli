@@ -121,9 +121,10 @@ export function registerIntegrationsCommands(program: Command): void {
     .requiredOption("--redirect-url <url>", "URL the user is sent back to after connecting")
     .option("--server-url <url>", "Mastodon or Bluesky instance URL")
     .option("--disable-auto-login", "ask the provider to avoid automatic login / auto-approval where supported")
+    .option("--tiktok-force-login", "TikTok only (experimental): force the account picker when TikTok keeps reusing the wrong active account")
     .option("--force-browser-oauth", "Instagram only: force browser login on phones")
     .option("--instagram-connection-method <method>", "Instagram only: FACEBOOK | INSTAGRAM")
-    .option("--with-business-scope", "Facebook/Instagram only: request business/ads scopes")
+    .option("--with-business-scope", "Facebook/Instagram/YouTube only: request business/ads scopes (YouTube monetization analytics)")
     .option("--data <json>", "advanced: the full request body as JSON; overrides the other options")
     .option("--data-file <path>", "advanced: read the full request body from a JSON file")
     .action(
@@ -134,6 +135,7 @@ export function registerIntegrationsCommands(program: Command): void {
             redirectUrl: string;
             serverUrl?: string;
             disableAutoLogin?: boolean;
+            tiktokForceLogin?: boolean;
             forceBrowserOauth?: boolean;
             instagramConnectionMethod?: string;
             withBusinessScope?: boolean;
@@ -153,6 +155,7 @@ export function registerIntegrationsCommands(program: Command): void {
                 redirectUrl: opts.redirectUrl,
                 ...(opts.serverUrl ? { serverUrl: opts.serverUrl } : {}),
                 ...(opts.disableAutoLogin ? { disableAutoLogin: true } : {}),
+                ...(opts.tiktokForceLogin ? { tiktokForceLogin: true } : {}),
                 ...(opts.forceBrowserOauth ? { forceBrowserOAuth: true } : {}),
                 ...(opts.instagramConnectionMethod
                   ? { instagramConnectionMethod: opts.instagramConnectionMethod.trim().toUpperCase() as ConnectBody["instagramConnectionMethod"] }
@@ -244,7 +247,10 @@ export function registerIntegrationsCommands(program: Command): void {
     .requiredOption("-p, --platform <platform...>", "platform to offer in the portal; repeatable")
     .option("--redirect-url <url>", "URL the user is sent back to after using the portal")
     .option("--expires-in <minutes>", "minutes until the link expires (min 5, max 2880)")
-    .option("--data <json>", "advanced: extra portal-link options as JSON, merged into the request body (logo, language, hide* flags, …)")
+    .option(
+      "--data <json>",
+      "advanced: extra portal-link options as JSON, merged into the request body — branding (logoUrl, userLogoUrl, userName, goBackButtonText, hidePoweredBy, hideGoBackButton, hideUserLogo, hideUserName, hideLanguageSwitcher, showModalOnConnectSuccess, language, maxSocialAccountsConnected) and the same OAuth flags as integrations:connect (serverUrl, instagramConnectionMethod, withBusinessScope, disableAutoLogin, forceBrowserOAuth, tiktokForceLogin)",
+    )
     .option("--data-file <path>", "advanced: read extra portal-link options from a JSON file")
     .action(
       safeAction(

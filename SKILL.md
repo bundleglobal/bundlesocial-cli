@@ -1,7 +1,7 @@
 ---
 name: bundlesocial-cli
 version: 1.0.0
-description: Post and schedule content to 14+ social platforms (X, Instagram, TikTok, LinkedIn, YouTube, Facebook, Pinterest, Reddit, Threads, Bluesky, Mastodon, Discord, Slack, Google Business Profile) through the bundle.social API. JSON in, JSON out.
+description: Post and schedule content to 15+ social platforms (X, Instagram, TikTok, LinkedIn, YouTube, Facebook, Pinterest, Reddit, Threads, Bluesky, Mastodon, Discord, Slack, Google Business Profile, Snapchat) through the bundle.social API. JSON in, JSON out.
 homepage: https://bundle.social
 repository: https://github.com/bundleglobal/bundlesocial-cli
 license: MIT
@@ -17,7 +17,7 @@ install: npx skills add bundleglobal/bundlesocial-cli
 
 # bundle.social CLI skill
 
-**Use this skill to publish, schedule, list, inspect and pull analytics for social-media posts across 14+ platforms via [bundle.social](https://bundle.social).** It wraps the `bundlesocial-cli` npm package, which speaks JSON on stdout — parse stdout, ignore stderr (stderr is human progress text only).
+**Use this skill to publish, schedule, list, inspect and pull analytics for social-media posts across 15+ platforms via [bundle.social](https://bundle.social).** It wraps the `bundlesocial-cli` npm package, which speaks JSON on stdout — parse stdout, ignore stderr (stderr is human progress text only).
 
 ## Setup
 
@@ -42,8 +42,8 @@ All commands accept the global flags `--api-key <key>`, `--api-url <url>`, `--te
 |---|---|
 | `integrations:list` | List connected social accounts (`id`, `type`, `username`, `channels`). Use it to discover integration ids and what platforms are available. |
 | `integrations:tools` | List the read-only platform helper methods callable via `integrations:trigger`. |
-| `integrations:trigger <method> [--data '<json>']` | Call a helper: `reddit:flairs` (`{"subreddit":"r/..."}`), `reddit:requirements`, `youtube:categories` (`{"regionCode":"US"}`), `youtube:playlists`, `youtube:regions`, `linkedin:mentions` (`{"q":"...","scope":"organizations"}`), `instagram:locations` (`{"q":"..."}`), `gbp:location`, `gbp:categories` (`{"languageCode":"en","regionCode":"US"}`), `tiktok:trending-music`. Use these to get values the API needs (flair ids, category ids, mention URNs, …). |
-| `integrations:connect -p <platform> --redirect-url <url>` | Start an OAuth connect flow; returns a `url` to redirect the user to. `--server-url` (Mastodon/Bluesky), `--instagram-connection-method`, `--with-business-scope`, `--data`/`--data-file`. |
+| `integrations:trigger <method> [--data '<json>']` | Call a helper: `reddit:flairs` (`{"subreddit":"r/..."}`), `reddit:requirements`, `youtube:categories` (`{"regionCode":"US"}`), `youtube:playlists`, `youtube:regions`, `linkedin:mentions` (`{"q":"...","scope":"organizations"}`), `instagram:locations` (`{"q":"..."}`), `instagram:audio` (`{"audioType":"music","searchQuery":"..."}`), `instagram:business-discovery` (`{"username":"..."}`), `gbp:location`, `gbp:categories` (`{"languageCode":"en","regionCode":"US"}`), `tiktok:trending-music`. Use these to get values the API needs (flair ids, category ids, mention URNs, …). |
+| `integrations:connect -p <platform> --redirect-url <url>` | Start an OAuth connect flow; returns a `url` to redirect the user to. `--server-url` (Mastodon/Bluesky), `--instagram-connection-method`, `--with-business-scope` (Facebook/Instagram/YouTube — also unlocks YouTube monetization analytics), `--disable-auto-login`, `--tiktok-force-login`, `--force-browser-oauth`, `--data`/`--data-file`. |
 | `integrations:disconnect -p <platform>` | Disconnect that platform's account from the team. |
 | `integrations:set-channel -p <platform> --channel-id <id>` / `integrations:unset-channel -p <platform>` | Pick / clear the channel/page to post to (FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, GBP). |
 | `integrations:refresh-channels -p <platform>` | Refresh the cached channels (DISCORD, SLACK, REDDIT, PINTEREST, …). |
@@ -59,21 +59,26 @@ All commands accept the global flags `--api-key <key>`, `--api-url <url>`, `--te
 | `posts:get <id>` | Fetch one post by id. |
 | `posts:delete <id>` | Delete a post by id. |
 | `posts:retry <id>` | Re-attempt a post that ended in `ERROR`. |
+| `posts:get-by-reference-key <key>` | Fetch a post by the `--reference-key` you set on it, instead of its bundle.social id. |
+| `posts:reconnect-candidates -p <platform> [--limit <n>] [--offset <n>]` | List draft/scheduled posts that lost their social account after a disconnect. |
+| `posts:reconnect -p <platform> [--post-id <id...>]` | Reattach those posts to the newly connected account of that platform (all candidates by default). |
 | `posts:import -p <platform> --count <n> [--with-analytics] [--import-carousels] [--surface <s>] [--media-type <t>]` | Start an async import of an account's recent posts (post history). Platforms: FACEBOOK, INSTAGRAM, THREADS, TIKTOK, YOUTUBE, LINKEDIN, PINTEREST, REDDIT, MASTODON, BLUESKY. |
 | `posts:imports [-p <platform>]` / `posts:import:get <importId>` | List post-history import statuses / fetch one. |
 | `posts:import:posts -p <platform> [--limit <n>] [--offset <n>]` | List imported posts (with analytics) for an account. |
 | `posts:import:delete-posts --id <id...>` / `posts:import:retry <importId>` | Bulk-delete imported posts / retry a failed import. |
 | `posts:csv --file <path>` | Upload a CSV for an async bulk post import. |
 | `posts:csv:list [--limit <n>] [--offset <n>]` / `posts:csv:get <importId>` / `posts:csv:status <importId>` / `posts:csv:rows <importId> [--status SUCCESS\|FAILED]` | Track a CSV bulk import. |
-| `comments:create --post-id <id> -c "..." [-c "..." ...]` | Comment on a post; repeat `-c` for a chain of replies (X-style thread via comments). Comment-capable platforms: TIKTOK, YOUTUBE, INSTAGRAM, FACEBOOK, THREADS, LINKEDIN, REDDIT, MASTODON, DISCORD, SLACK, BLUESKY. Optional `--date`, `--delay <minutes>`, `--draft`, `-i`/`-p` (defaults to the post's platforms). |
+| `comments:create --post-id <id> -c "..." [-c "..." ...]` | Comment on a post; repeat `-c` for a chain of replies (X-style thread via comments). Comment-capable platforms: TIKTOK, YOUTUBE, INSTAGRAM, FACEBOOK, THREADS, LINKEDIN, REDDIT, MASTODON, DISCORD, SLACK, BLUESKY. Optional `--date`, `--delay <minutes>`, `--draft`, `-i`/`-p` (defaults to the post's platforms). Use `--imported-post-id <id>` instead of `--post-id` to comment on a post from `posts:import` (then `-p` is required), and `--fetched-parent-comment-id <id>` to reply to a comment from `comments:import`. |
 | `comments:list [--post-id <id>]` / `comments:get <id>` / `comments:update <id>` / `comments:delete <id>` | List/fetch/update/delete comments. `comments:update` mirrors `posts:update` — only the fields you pass change. |
 | `comments:import --post-id <id> -p <platform>` | Start an async import of a post's comments. Platforms: FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, TIKTOK, REDDIT, THREADS, MASTODON, BLUESKY. |
 | `comments:imports [--post-id <id>] [--status <s>]` / `comments:import:get <importId>` | List comment-import jobs / fetch one. |
 | `comments:import:comments --post-id <id> [-p <platform>] [--social-account-id <id>]` | List the comments fetched for a post via `comments:import`. |
+| `comments:retry <id>` | Re-attempt a comment that ended in `ERROR`. |
+| `comments:import:action <commentId> --action <DELETE\|HIDE\|UNHIDE\|LIKE\|UNLIKE\|APPROVE\|REJECT> [--reason <text>] [--ban-author]` | Moderate a comment pulled in by `comments:import`. Support varies by platform; `DELETE` and `HIDE` are the widely available ones. |
 | `media:upload <path-or-url>` | Upload an image/video/document from a local path or public URL → returns the upload object (use its `id`). |
 | `media:upload-large <path>` | Upload a large local file (>90 MB) via the chunked init → PUT → finalize flow. |
 | `media:list [--type <t>] [--status USED\|UNUSED]` / `media:get <id>` / `media:delete <id>` / `media:delete-many --id <id...>` | List/fetch/delete uploaded media. |
-| `analytics:post <id> [--raw]` | Engagement metrics for one post (`--raw` = unprocessed provider payload). |
+| `analytics:post [id] [--imported-post-id <id>] [--raw]` | Engagement metrics for one post — a post you created, or one pulled in by `posts:import` via `--imported-post-id` (`--raw` = unprocessed provider payload). |
 | `analytics:account -p <platform> [--raw]` | Analytics snapshots for a connected social account (`--raw` = unprocessed provider payload). |
 | `analytics:bulk -p <platform> --post-id <id...>` | Analytics for up to 60 posts in one request. |
 | `analytics:refresh [--post-id <id>] [-p <platform>]` | Force-refresh analytics for a post (`--post-id`) or a connected account (`-p`). |
@@ -81,7 +86,8 @@ All commands accept the global flags `--api-key <key>`, `--api-url <url>`, `--te
 | `teams:list` / `teams:get <id>` / `teams:create --name <name>` / `teams:update <id>` / `teams:delete <id>` | Manage the teams in your organization. |
 | `org:get` | Fetch your organization — id, name, plan limits, feature flags, teams. |
 | `org:usage [--page <n>] [--page-size <n>] [--social-account-type <p>] [--social-account-id <id>]` | Posts/comments/uploads usage + per-account imports breakdown. |
-| `platforms:describe [platform] [--operation post\|comment]` | Look up the exact per-platform `data.<PLATFORM>` field schema for posts **and** comments — name, type, required flag, notes, capabilities and a ready-to-use example. Omit the platform for all 14. Offline — no API key needed. **Run it before composing a non-trivial `--platform-settings` / `--data` object.** |
+| `org:daily-limits --social-account-id <id> [--date <yyyy-mm-dd>]` | One account's daily post/comment allowance (used/limit/remaining) for a day. Check it before bulk-scheduling. |
+| `platforms:describe [platform] [--operation post\|comment]` | Look up the exact per-platform `data.<PLATFORM>` field schema for posts **and** comments — name, type, required flag, notes, capabilities and a ready-to-use example. Omit the platform for all 15. Offline — no API key needed. **Run it before composing a non-trivial `--platform-settings` / `--data` object.** |
 | `doctor` | Self-diagnostic JSON. |
 
 ### Composing a post (`posts:create` / `posts:schedule` / `posts:update`)
@@ -96,13 +102,15 @@ All commands accept the global flags `--api-key <key>`, `--api-url <url>`, `--te
 - `--data '<json>'` — advanced escape hatch: the entire post `data` object verbatim (`{"PLATFORM":{...}}`). Overrides `-c`/`-m`/`--platform-settings`. Targeted platforms are inferred from its keys unless you also pass `-i`/`-p`.
 - `--data-file <path>` — same as `--data` but read from a JSON file (prefer this over giant inline JSON; avoids shell-escaping).
 - `--title "<text>"` — optional; defaults to the first line of `--content`. Also the YouTube video title.
+- `--reference-key "<key>"` — your own identifier for the post; fetch it later with `posts:get-by-reference-key` instead of storing bundle.social ids.
+- `--first-comment "<text>"` or `--first-comment '{"INSTAGRAM":"…"}'` — a comment published as soon as the post goes live. Plain text applies to every comment-capable target; the JSON form targets specific platforms. Comment-capable platforms only.
 - `--draft` (create only) — save without publishing.
 - `-d, --date <iso8601>` — required for `posts:schedule`; on `posts:update` it changes the publish date. E.g. `2026-06-01T09:00:00Z`.
 - `--status <DRAFT|SCHEDULED>` (update only) — move a post between draft and scheduled.
 
 **Tip:** before posting to Reddit, run `integrations:trigger reddit:requirements --data '{"subreddit":"r/<sub>"}'` and `reddit:flairs` — set `sr` and (if required) `flairId` in `--platform-settings`. Same for YouTube `categoryId` (`youtube:categories`).
 
-Platform name aliases: `x`/`twitter`, `tiktok`, `youtube`/`yt`, `instagram`/`ig`, `facebook`/`fb`, `threads`, `linkedin`/`li`, `pinterest`/`pin`, `reddit`, `mastodon`, `discord`, `slack`, `bluesky`/`bsky`, `gbp`/`google-business`.
+Platform name aliases: `x`/`twitter`, `tiktok`, `youtube`/`yt`, `instagram`/`ig`, `facebook`/`fb`, `threads`, `linkedin`/`li`, `pinterest`/`pin`, `reddit`, `mastodon`, `discord`, `slack`, `bluesky`/`bsky`, `gbp`/`google-business`, `snapchat`/`snap`.
 
 ## Per-platform composition notes
 
@@ -116,14 +124,17 @@ When you target a platform, put platform-specific fields under that platform's k
 - **Facebook (`facebook`)** — `type`: `POST` (text + images/video, optional `link`, optional `mediaTitle` for videos), `REEL` (single video), `STORY`. Posts to a Facebook Page. Optional `mediaItems` with `altText`.
 - **Pinterest (`pinterest`)** — **`boardName` is required.** One image (or video). Optional `link` (where the Pin points), `altText`, `title`, `description`, `note`.
 - **Reddit (`reddit`)** — **`sr` (subreddit, e.g. `r/test`) is required.** `text` is the body for self posts; attach an image/video or set a `link`. Some subreddits require a flair (`flairId`) — fetch options first if a post is rejected for that reason.
-- **Threads (`threads`)** — `text` ~500 chars. Up to ~10 images or 1 video; per-item `altText` via `mediaItems`.
+- **Threads (`threads`)** — `text` ~500 chars. Up to ~10 images or 1 video; per-item `altText` via `mediaItems`. Optional `topicTag`, `replyControl`, `allowlistedCountryCodes`, `crosspostToInstagramStory`. `poll`, `gif` and `linkAttachment` work on **text-only** posts (and poll/gif are mutually exclusive).
 - **Bluesky (`bluesky`)** — `text` ~300 chars. Up to 4 images. No analytics surface.
 - **Mastodon (`mastodon`)** — `text` length depends on the connected instance (commonly ~500 chars). Up to 4 images **or** 1 video. The user picks the instance when connecting.
 - **Discord (`discord`)** — posts to a channel/webhook on a connected server. `text` ≤2000 chars; attachments allowed. No analytics surface.
 - **Slack (`slack`)** — posts a message to a connected channel. Text + attachments. No analytics surface.
 - **Google Business Profile (`gbp`)** — posts a local update to a connected business location. Short text + optional image/CTA. (Set up the location in the dashboard.)
+- **Snapchat (`snapchat`)** — `type`: `STORY` (image or video) or `SPOTLIGHT` (video only, optional `description` ≤160 chars, `locale`, `skipSaveToProfile`). Video 5–180s, ≥540×960, ≤100 MB. Requires a Public Profile; no comments surface.
 
-General media limits: images JPG/PNG/WEBP/GIF, video MP4/MOV/WEBM. Large videos can take a while to process server-side after upload — a freshly created post may sit in `PROCESSING` before going `POSTED`.
+AI/partnership disclosure flags: `isAiGenerated` on X, Instagram, Pinterest and TikTok; `containsSyntheticMedia` on YouTube; `isPaidPartnership` + `brandedContentSponsors` (≤2 usernames, Facebook-Login accounts) on Instagram; `isBrandContent` / `isOrganicBrandContent` on TikTok; `hasPaidProductPlacement` on YouTube.
+
+General media limits: images JPG/PNG/WEBP/GIF, video MP4/MOV/WEBM (up to 5 GB via `media:upload-large`). Large videos can take a while to process server-side after upload — a freshly created post may sit in `PROCESSING` before going `POSTED`.
 
 ## Worked workflows
 
@@ -180,7 +191,8 @@ Match on `error.code`:
 - `NO_TEAMS` — the org has no teams; the user must create one in the dashboard.
 - `NO_TARGET` — `posts:create`/`posts:schedule`/`comments:create` was called without `-i`/`-p` (or a `--data` with platform keys, or a post with no usable platforms). Add a target.
 - `NO_CONTENT` — `comments:create` was called without any `-c`. Add at least one.
-- `NOTHING_TO_UPDATE` — `posts:update` was called with no fields to change. Pass at least one of `--title/--date/--status/--content/--media/--platform-settings/--data/--data-file/--integration-id`.
+- `NOTHING_TO_UPDATE` — `posts:update` was called with no fields to change. Pass at least one of `--title/--date/--status/--content/--media/--platform-settings/--data/--data-file/--reference-key/--first-comment/--integration-id`.
+- `COMMENTS_NOT_SUPPORTED` — `--first-comment` (or a comment command) targeted a platform without a comments API. Drop that platform or use the JSON form of `--first-comment` to target only comment-capable ones.
 - `UNKNOWN_PLATFORM` — a `-i`/`-p`/`--platform` value isn't a recognised platform name. Use one of the aliases above, or pass an integration id from `integrations:list`.
 - `INTEGRATION_NOT_FOUND` — the integration id doesn't exist on this team. `details.availableIntegrations` lists valid ones; the user may need to connect the account in the dashboard first.
 - `COMMENTS_NOT_SUPPORTED` — you targeted X/Twitter, Pinterest or Google Business for a comment. Drop those platforms (comments aren't available there).

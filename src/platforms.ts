@@ -19,6 +19,7 @@ export const PLATFORMS = [
   "SLACK",
   "BLUESKY",
   "GOOGLE_BUSINESS",
+  "SNAPCHAT",
 ] as const;
 
 export type Platform = (typeof PLATFORMS)[number];
@@ -39,6 +40,7 @@ export const ANALYTICS_PLATFORMS = [
   "LINKEDIN",
   "BLUESKY",
   "GOOGLE_BUSINESS",
+  "SNAPCHAT",
 ] as const;
 
 export type AnalyticsPlatform = (typeof ANALYTICS_PLATFORMS)[number];
@@ -97,6 +99,8 @@ const ALIASES: Record<string, Platform> = {
   GBP: "GOOGLE_BUSINESS",
   GOOGLEBUSINESS: "GOOGLE_BUSINESS",
   GMB: "GOOGLE_BUSINESS",
+  SNAPCHAT: "SNAPCHAT",
+  SNAP: "SNAPCHAT",
 };
 
 /** Returns the canonical platform for an alias, or `undefined` if unknown. */

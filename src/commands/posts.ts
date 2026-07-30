@@ -1,15 +1,23 @@
 import type { Command } from "commander";
-import type { PostCreateData, PostGetListData, PostUpdateData } from "bundlesocial";
+import type {
+  PostCreateData,
+  PostGetListData,
+  PostGetReconnectSocialAccountCandidatesData,
+  PostReconnectSocialAccountData,
+  PostUpdateData,
+} from "bundlesocial";
 import { safeAction } from "../program";
 import { createContext, resolveTeamId, type CliContext } from "../context";
 import { CliError, emitResult } from "../output";
-import { normalizePlatform, type Platform } from "../platforms";
+import { COMMENT_PLATFORMS, isCommentPlatform, normalizePlatform, type Platform } from "../platforms";
 import { uploadMediaRefs } from "../media";
-import { buildPostData, deriveTitle, resolveDataArgument, resolveTargetPlatforms, toIsoDate } from "../post-data";
+import { buildPostData, deriveTitle, parseJsonObject, resolveDataArgument, resolveTargetPlatforms, toIsoDate } from "../post-data";
 
 type PostCreateBody = NonNullable<PostCreateData["requestBody"]>;
 type PostData = PostCreateBody["data"];
 type PostUpdateBody = NonNullable<PostUpdateData["requestBody"]>;
+type ReconnectPlatform = NonNullable<PostReconnectSocialAccountData["requestBody"]>["type"];
+type PostFirstComment = NonNullable<NonNullable<PostCreateBody["firstComment"]>>;
 
 interface ComposeOptions {
   content?: string;
@@ -20,6 +28,46 @@ interface ComposeOptions {
   data?: string;
   dataFile?: string;
   title?: string;
+  referenceKey?: string;
+  firstComment?: string;
+}
+
+/**
+ * Split `--first-comment` into the per-platform `firstComment` object the API
+ * expects. Accepts a platform-keyed JSON object (`{"INSTAGRAM":"…"}`) or plain
+ * text applied to every comment-capable platform the post targets.
+ */
+function buildFirstComment(raw: string | undefined, platforms: Platform[]): PostFirstComment | undefined {
+  if (raw === undefined) return undefined;
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("{")) {
+    const parsed = parseJsonObject(trimmed, "--first-comment");
+    const result: PostFirstComment = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      const platform = normalizePlatform(key);
+      if (!isCommentPlatform(platform)) {
+        throw new CliError(
+          "COMMENTS_NOT_SUPPORTED",
+          `A first comment is not supported on ${platform}. Supported: ${COMMENT_PLATFORMS.join(", ")}.`,
+        );
+      }
+      if (typeof value !== "string") {
+        throw new CliError("INVALID_JSON", `--first-comment.${key} must be a string.`);
+      }
+      result[platform] = value;
+    }
+    return result;
+  }
+  const targets = platforms.filter(isCommentPlatform);
+  if (targets.length === 0) {
+    throw new CliError(
+      "COMMENTS_NOT_SUPPORTED",
+      `None of the targeted platforms support comments, so --first-comment has no effect. Supported: ${COMMENT_PLATFORMS.join(", ")}.`,
+    );
+  }
+  const result: PostFirstComment = {};
+  for (const platform of targets) result[platform] = raw;
+  return result;
 }
 
 /** Shared options for composing/editing a post (`posts:create` / `posts:schedule` / `posts:update`). */
@@ -28,7 +76,7 @@ function addComposeOptions(command: Command): Command {
     .option("-c, --content <text>", "post text, applied to every targeted platform")
     .option(
       "-i, --integration-id <id...>",
-      "target: a connected integration id OR a platform name/alias (x, tiktok, instagram, youtube, facebook, threads, linkedin, pinterest, reddit, mastodon, discord, slack, bluesky, gbp). Repeatable.",
+      "target: a connected integration id OR a platform name/alias (x, tiktok, instagram, youtube, facebook, threads, linkedin, pinterest, reddit, mastodon, discord, slack, bluesky, gbp, snapchat). Repeatable.",
     )
     .option("-p, --platform <platform...>", "alias for --integration-id that only accepts platform names. Repeatable.")
     .option("-m, --media <ref...>", "media to attach: a public https:// URL or a local file path. Uploaded automatically. Repeatable.")
@@ -38,7 +86,12 @@ function addComposeOptions(command: Command): Command {
     )
     .option("--data <json>", "advanced: the full post `data` object as JSON; overrides --content/--media/--platform-settings")
     .option("--data-file <path>", "advanced: read the full post `data` object from a JSON file (alternative to --data)")
-    .option("--title <text>", "post title (defaults to the first line of --content)");
+    .option("--title <text>", "post title (defaults to the first line of --content)")
+    .option("--reference-key <key>", "your own identifier for this post; look it up later with posts:get-by-reference-key")
+    .option(
+      "--first-comment <text|json>",
+      'comment published right after the post goes live: plain text (applied to every comment-capable target) or JSON keyed by platform, e.g. \'{"INSTAGRAM":"more below 👇"}\'',
+    );
 }
 
 interface ComposedPost {
@@ -93,16 +146,18 @@ export function registerPostsCommands(program: Command): void {
     .action(
       safeAction(async (opts: ComposeOptions & { draft?: boolean }, command: Command) => {
         const { ctx, teamId, platforms, data, title } = await composePost(command.optsWithGlobals(), opts);
-        const post = await ctx.client.post.postCreate({
-          requestBody: {
-            teamId,
-            title,
-            postDate: new Date().toISOString(),
-            status: opts.draft ? "DRAFT" : "SCHEDULED",
-            socialAccountTypes: platforms,
-            data,
-          },
-        });
+        const requestBody: PostCreateBody = {
+          teamId,
+          title,
+          postDate: new Date().toISOString(),
+          status: opts.draft ? "DRAFT" : "SCHEDULED",
+          socialAccountTypes: platforms,
+          data,
+        };
+        if (opts.referenceKey !== undefined) requestBody.referenceKey = opts.referenceKey;
+        const firstComment = buildFirstComment(opts.firstComment, platforms);
+        if (firstComment) requestBody.firstComment = firstComment;
+        const post = await ctx.client.post.postCreate({ requestBody });
         emitResult(post, ctx.pretty);
       }),
     );
@@ -118,9 +173,18 @@ export function registerPostsCommands(program: Command): void {
       safeAction(async (opts: ComposeOptions & { date: string }, command: Command) => {
         const postDate = toIsoDate(opts.date, "--date");
         const { ctx, teamId, platforms, data, title } = await composePost(command.optsWithGlobals(), opts);
-        const post = await ctx.client.post.postCreate({
-          requestBody: { teamId, title, postDate, status: "SCHEDULED", socialAccountTypes: platforms, data },
-        });
+        const requestBody: PostCreateBody = {
+          teamId,
+          title,
+          postDate,
+          status: "SCHEDULED",
+          socialAccountTypes: platforms,
+          data,
+        };
+        if (opts.referenceKey !== undefined) requestBody.referenceKey = opts.referenceKey;
+        const firstComment = buildFirstComment(opts.firstComment, platforms);
+        if (firstComment) requestBody.firstComment = firstComment;
+        const post = await ctx.client.post.postCreate({ requestBody });
         emitResult(post, ctx.pretty);
       }),
     );
@@ -160,6 +224,11 @@ export function registerPostsCommands(program: Command): void {
 
         const requestBody: PostUpdateBody = {};
         if (opts.title !== undefined) requestBody.title = opts.title;
+        if (opts.referenceKey !== undefined) requestBody.referenceKey = opts.referenceKey;
+        if (opts.firstComment !== undefined) {
+          const targets = platforms ?? (Object.keys((await ctx.client.post.postGet({ id })).data ?? {}) as Platform[]);
+          requestBody.firstComment = buildFirstComment(opts.firstComment, targets);
+        }
         if (opts.date) requestBody.postDate = toIsoDate(opts.date, "--date");
         if (opts.status) requestBody.status = opts.status.trim().toUpperCase() as PostUpdateBody["status"];
         if (platforms && platforms.length > 0) requestBody.socialAccountTypes = platforms as PostUpdateBody["socialAccountTypes"];
@@ -175,7 +244,7 @@ export function registerPostsCommands(program: Command): void {
         if (Object.keys(requestBody).length === 0) {
           throw new CliError(
             "NOTHING_TO_UPDATE",
-            "Nothing to update — pass at least one of --title, --date, --status, --content, --media, --platform-settings, --data, --data-file, --integration-id/--platform.",
+            "Nothing to update — pass at least one of --title, --date, --status, --content, --media, --platform-settings, --data, --data-file, --reference-key, --first-comment, --integration-id/--platform.",
           );
         }
         emitResult(await ctx.client.post.postUpdate({ id, requestBody }), ctx.pretty);
@@ -264,6 +333,68 @@ export function registerPostsCommands(program: Command): void {
       safeAction(async (id: string, _opts: unknown, command: Command) => {
         const ctx = createContext(command.optsWithGlobals());
         emitResult(await ctx.client.post.postRetry({ id }), ctx.pretty);
+      }),
+    );
+
+  program
+    .command("posts:get-by-reference-key")
+    .summary("fetch a post by your own reference key")
+    .description(
+      "Fetch a single post using the `referenceKey` you set when creating it (see posts:create --reference-key) instead of the bundle.social post id.",
+    )
+    .argument("<referenceKey>", "your reference key for the post")
+    .action(
+      safeAction(async (referenceKey: string, _opts: unknown, command: Command) => {
+        const ctx = createContext(command.optsWithGlobals());
+        emitResult(await ctx.client.post.postGetByReferenceKey({ referenceKey }), ctx.pretty);
+      }),
+    );
+
+  program
+    .command("posts:reconnect-candidates")
+    .summary("list posts waiting to be reattached to a reconnected account")
+    .description(
+      "List draft/scheduled posts that lost their link to a social account after a disconnect and can be reattached to a newly connected account of the same platform.",
+    )
+    .requiredOption("-p, --platform <platform>", "platform of the reconnected account")
+    .option("--limit <n>", "max number of posts to return")
+    .option("--offset <n>", "number of posts to skip")
+    .action(
+      safeAction(async (opts: { platform: string; limit?: string; offset?: string }, command: Command) => {
+        const ctx = createContext(command.optsWithGlobals());
+        const teamId = await resolveTeamId(ctx);
+        const query: PostGetReconnectSocialAccountCandidatesData = {
+          teamId,
+          type: normalizePlatform(opts.platform) as PostGetReconnectSocialAccountCandidatesData["type"],
+          limit: opts.limit !== undefined ? Number(opts.limit) : undefined,
+          offset: opts.offset !== undefined ? Number(opts.offset) : undefined,
+        };
+        emitResult(await ctx.client.post.postGetReconnectSocialAccountCandidates(query), ctx.pretty);
+      }),
+    );
+
+  program
+    .command("posts:reconnect")
+    .summary("reattach posts to a reconnected account")
+    .description(
+      "Attach a newly connected social account to the posts that lost their link to the previous account of that platform. Without --post-id every candidate is reattached (see posts:reconnect-candidates).",
+    )
+    .requiredOption("-p, --platform <platform>", "platform of the reconnected account")
+    .option("--post-id <id...>", "only reattach these posts. Repeatable. Defaults to every candidate.")
+    .action(
+      safeAction(async (opts: { platform: string; postId?: string[] }, command: Command) => {
+        const ctx = createContext(command.optsWithGlobals());
+        const teamId = await resolveTeamId(ctx);
+        emitResult(
+          await ctx.client.post.postReconnectSocialAccount({
+            requestBody: {
+              teamId,
+              type: normalizePlatform(opts.platform) as ReconnectPlatform,
+              ...(opts.postId && opts.postId.length > 0 ? { postIds: opts.postId } : {}),
+            },
+          }),
+          ctx.pretty,
+        );
       }),
     );
 }

@@ -1,6 +1,6 @@
 # bundlesocial-cli
 
-Command-line interface for the [bundle.social](https://bundle.social) social-media API — post to 14+ platforms (X, Instagram, TikTok, LinkedIn, YouTube, Facebook, Pinterest, Reddit, Threads, Bluesky, Mastodon, Discord, Slack, Google Business Profile) from your shell, CI, cron or an AI agent.
+Command-line interface for the [bundle.social](https://bundle.social) social-media API — post to 15+ platforms (X, Instagram, TikTok, LinkedIn, YouTube, Facebook, Pinterest, Reddit, Threads, Bluesky, Mastodon, Discord, Slack, Google Business Profile, Snapchat) from your shell, CI, cron or an AI agent.
 
 It is a thin, scriptable wrapper over the official [`bundlesocial`](https://www.npmjs.com/package/bundlesocial) Node SDK:
 
@@ -95,9 +95,11 @@ Flags:
 | `--data <json>` | Advanced: the full post `data` object as JSON; overrides `--content` / `--media` / `--platform-settings` |
 | `--data-file <path>` | Advanced: read the full post `data` object from a JSON file (alternative to `--data` — handy for large multi-platform campaigns) |
 | `--title <text>` | Post title (defaults to the first line of `--content`) |
+| `--reference-key <key>` | Your own identifier for the post — look it up later with `posts:get-by-reference-key` |
+| `--first-comment <text\|json>` | Comment published as soon as the post goes live. Plain text applies to every comment-capable target; JSON keyed by platform targets specific ones (`'{"INSTAGRAM":"more below 👇"}'`) |
 | `--draft` | Save as a `DRAFT` instead of publishing now |
 
-Platform name aliases: `x`/`twitter`, `tiktok`, `youtube`/`yt`, `instagram`/`ig`, `facebook`/`fb`, `threads`, `linkedin`/`li`, `pinterest`/`pin`, `reddit`, `mastodon`, `discord`, `slack`, `bluesky`/`bsky`, `gbp`/`google-business`.
+Platform name aliases: `x`/`twitter`, `tiktok`, `youtube`/`yt`, `instagram`/`ig`, `facebook`/`fb`, `threads`, `linkedin`/`li`, `pinterest`/`pin`, `reddit`, `mastodon`, `discord`, `slack`, `bluesky`/`bsky`, `gbp`/`google-business`, `snapchat`/`snap`.
 
 ### `posts:schedule`
 
@@ -132,7 +134,7 @@ bundle-social posts:update post_abc123 -c "Updated copy" --date 2026-06-05T12:00
 bundle-social posts:update post_abc123 -i x -i bluesky -c "Now also on Bluesky"
 ```
 
-Flags: the `posts:create` compose flags (`-c`, `-i/-p`, `-m`, `--platform-settings`, `--data`, `--data-file`, `--title`) plus `-d, --date <iso>` and `--status <DRAFT|SCHEDULED>`.
+Flags: the `posts:create` compose flags (`-c`, `-i/-p`, `-m`, `--platform-settings`, `--data`, `--data-file`, `--title`, `--reference-key`, `--first-comment`) plus `-d, --date <iso>` and `--status <DRAFT|SCHEDULED>`.
 
 ### `posts:get <id>` / `posts:delete <id>` / `posts:retry <id>`
 
@@ -140,6 +142,25 @@ Flags: the `posts:create` compose flags (`-c`, `-i/-p`, `-m`, `--platform-settin
 bundle-social posts:get post_abc123
 bundle-social posts:delete post_abc123
 bundle-social posts:retry post_abc123     # re-attempt a post that ended in ERROR
+```
+
+### `posts:get-by-reference-key <key>`
+
+Look a post up by the `--reference-key` you set when creating it, so you don't have to keep a mapping from your ids to bundle.social's.
+
+```bash
+bundle-social posts:create -c "Launch" -i x --reference-key campaign-2026-07-launch
+bundle-social posts:get-by-reference-key campaign-2026-07-launch
+```
+
+### `posts:reconnect-candidates` / `posts:reconnect`
+
+After an account is reconnected, draft and scheduled posts that pointed at the old account can be reattached to the new one.
+
+```bash
+bundle-social posts:reconnect-candidates -p instagram
+bundle-social posts:reconnect -p instagram                                       # every candidate
+bundle-social posts:reconnect -p instagram --post-id post_abc123 post_def456     # a subset
 ```
 
 ### `comments:create`
@@ -165,6 +186,23 @@ bundle-social comments:delete cmt_abc123
 ```
 
 `comments:update` mirrors `posts:update`: only the fields you pass change. Flags: `--title`, `--date`, `--status DRAFT|SCHEDULED`, `--content` (+ `-p` for the platforms), `--data` / `--data-file`.
+
+Comment on imported content too: `--imported-post-id <id>` targets a post from `posts:import` (pass `-p` since there's no bundle.social post to infer platforms from), and `--fetched-parent-comment-id <id>` replies to a comment from `comments:import`.
+
+```bash
+bundle-social comments:create --imported-post-id imp_abc123 -p instagram -c "Thanks all 🙏"
+bundle-social comments:create --post-id post_abc123 --fetched-parent-comment-id fcm_abc123 -c "Answering your question…"
+```
+
+### `comments:retry <id>` / `comments:import:action <commentId>`
+
+```bash
+bundle-social comments:retry cmt_abc123                                   # re-attempt a comment in ERROR
+bundle-social comments:import:action fcm_abc123 --action HIDE             # moderate an imported comment
+bundle-social comments:import:action fcm_abc123 --action DELETE --reason spam
+```
+
+`comments:import:action` works on comments pulled in by `comments:import`. Actions: `DELETE`, `HIDE`, `UNHIDE`, `LIKE`, `UNLIKE`, `APPROVE`, `REJECT` (support varies by platform); add `--ban-author` where the platform allows it.
 
 ### `integrations:tools` / `integrations:trigger <method>`
 
@@ -324,6 +362,7 @@ bundle-social analytics:summary --from 2026-05-01 --to 2026-06-01 --pretty
 | `teams:delete <id>` | Delete a team. |
 | `org:get` | Fetch your organization — id, name, plan limits, feature flags, teams. |
 | `org:usage [--page <n>] [--page-size <n>] [--social-account-type <p>] [--social-account-id <id>]` | Posts / comments / uploads usage plus the per-account imports breakdown (scoped to `--team-id`/`BUNDLESOCIAL_TEAM_ID` when set). |
+| `org:daily-limits --social-account-id <id> [--date <yyyy-mm-dd>]` | One account's daily post/comment allowance — used, limit and remaining for that day. |
 
 ```bash
 bundle-social teams:list --pretty
