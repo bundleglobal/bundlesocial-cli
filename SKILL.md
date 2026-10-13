@@ -23,7 +23,7 @@ install: npx skills add bundleglobal/bundlesocial-cli
 
 1. The user needs a bundle.social account and an API key from <https://bundle.social/dashboard/organization/api-keys>.
 2. Set `BUNDLESOCIAL_API_KEY` in the environment.
-3. If the user's organization has more than one team, also set `BUNDLESOCIAL_TEAM_ID` (find ids via `integrations:list` or `doctor`). With a single team this is automatic.
+3. If the user's organization has more than one team, also set `BUNDLESOCIAL_TEAM_ID` (find ids via `teams:list` or `doctor`). With a single team this is automatic.
 4. Run the CLI with `npx bundlesocial-cli <command>` (or `bundle-social <command>` if installed globally).
 5. First thing to run when unsure: `npx bundlesocial-cli doctor` — it reports key validity, connectivity, the resolved team, connected integrations and the posting quota as JSON.
 
@@ -84,7 +84,7 @@ All commands accept the global flags `--api-key <key>`, `--api-url <url>`, `--te
 | `analytics:refresh [--post-id <id>] [-p <platform>]` | Force-refresh analytics for a post (`--post-id`) or a connected account (`-p`). |
 | `analytics:summary` | Org-level usage quotas + latest per-integration analytics snapshot. |
 | `teams:list` / `teams:get <id>` / `teams:create --name <name>` / `teams:update <id>` / `teams:delete <id>` | Manage the teams in your organization. |
-| `org:get` | Fetch your organization — id, name, plan limits, feature flags, teams. |
+| `org:get` | Fetch your organization — id, name, plan limits, feature flags (list teams with `teams:list`). |
 | `org:usage [--page <n>] [--page-size <n>] [--social-account-type <p>] [--social-account-id <id>]` | Posts/comments/uploads usage + per-account imports breakdown. |
 | `org:daily-limits --social-account-id <id> [--date <yyyy-mm-dd>]` | One account's daily post/comment allowance (used/limit/remaining) for a day. Check it before bulk-scheduling. |
 | `platforms:describe [platform] [--operation post\|comment]` | Look up the exact per-platform `data.<PLATFORM>` field schema for posts **and** comments — name, type, required flag, notes, capabilities and a ready-to-use example. Omit the platform for all 15. Offline — no API key needed. **Run it before composing a non-trivial `--platform-settings` / `--data` object.** |

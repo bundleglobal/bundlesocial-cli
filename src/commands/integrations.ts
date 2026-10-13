@@ -8,7 +8,7 @@ import type {
   SocialAccountSetChannelData,
 } from "bundlesocial";
 import { safeAction } from "../program";
-import { createContext, resolveExplicitTeamId, resolveTeamId, type CliContext } from "../context";
+import { createContext, listAllTeams, resolveExplicitTeamId, resolveTeamId, type CliContext } from "../context";
 import { CliError, emitResult } from "../output";
 import { parseJsonObject, resolveDataArgument } from "../post-data";
 import { normalizePlatform } from "../platforms";
@@ -66,8 +66,7 @@ export function registerIntegrationsCommands(program: Command): void {
           return;
         }
 
-        const organization = await ctx.client.organization.organizationGetOrganization();
-        const teams = organization.teams ?? [];
+        const teams = await listAllTeams(ctx.client);
         if (teams.length === 1) {
           emitResult(await listForTeam(ctx, teams[0].id), ctx.pretty);
           return;
@@ -77,6 +76,8 @@ export function registerIntegrationsCommands(program: Command): void {
         for (const team of teams) {
           perTeam.push(await listForTeam(ctx, team.id));
         }
+        // Org call is still needed for id/name in the multi-team envelope.
+        const organization = await ctx.client.organization.organizationGetOrganization();
         emitResult({ organizationId: organization.id, organizationName: organization.name, teams: perTeam }, ctx.pretty);
       }),
     );

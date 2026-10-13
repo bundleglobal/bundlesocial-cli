@@ -4,6 +4,7 @@ import {
   DASHBOARD_API_KEYS_URL,
   DASHBOARD_SOCIAL_ACCOUNTS_URL,
   createClient,
+  listAllTeams,
   resolveApiUrl,
   resolveExplicitTeamId,
 } from "../context";
@@ -61,8 +62,11 @@ export function registerDoctorCommand(program: Command): void {
         let teams: Array<{ id: string; name: string }> = [];
         let organizationApiAccess: boolean | undefined;
         try {
-          const organization = await client.organization.organizationGetOrganization();
-          teams = (organization.teams ?? []).map((team) => ({ id: team.id, name: team.name }));
+          const [organization, allTeams] = await Promise.all([
+            client.organization.organizationGetOrganization(),
+            listAllTeams(client),
+          ]);
+          teams = allTeams.map((team) => ({ id: team.id, name: team.name }));
           organizationApiAccess = organization.apiAccess;
           add("authentication", "ok", "API key is valid", {
             organizationId: organization.id,

@@ -135,7 +135,7 @@ const TEAM = {
   ],
 };
 
-const ORG = { id: "org_test", name: "Acme", apiAccess: true, teams: [{ id: "team_test", name: "Test Team" }] };
+const ORG = { id: "org_test", name: "Acme", apiAccess: true };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -144,6 +144,7 @@ beforeEach(() => {
   delete process.env.BUNDLESOCIAL_API_URL;
   client.organization.organizationGetOrganization.mockResolvedValue(ORG);
   client.team.teamGetTeam.mockResolvedValue(TEAM);
+  client.team.teamGetList.mockResolvedValue({ items: [TEAM], total: 1 });
 });
 
 afterEach(() => {
@@ -262,8 +263,38 @@ describe("integrations:list", () => {
     delete process.env.BUNDLESOCIAL_TEAM_ID;
     const { exitCode } = await runCli(["integrations:list"]);
     expect(exitCode).toBe(0);
-    expect(client.organization.organizationGetOrganization).toHaveBeenCalled();
+    expect(client.team.teamGetList).toHaveBeenCalledWith({ offset: 0, limit: 100 });
+    expect(client.organization.organizationGetOrganization).not.toHaveBeenCalled();
     expect(client.team.teamGetTeam).toHaveBeenCalledWith({ id: "team_test" });
+  });
+
+  it("pages through the team list and lists every team", async () => {
+    delete process.env.BUNDLESOCIAL_TEAM_ID;
+    const firstPage = Array.from({ length: 100 }, (_, i) => ({ ...TEAM, id: `team_${i}`, name: `Team ${i}` }));
+    client.team.teamGetList
+      .mockResolvedValueOnce({ items: firstPage, total: 101 })
+      .mockResolvedValueOnce({ items: [{ ...TEAM, id: "team_100", name: "Team 100" }], total: 101 });
+    const { json, exitCode } = await runCli(["integrations:list"]);
+    expect(exitCode).toBe(0);
+    expect(client.team.teamGetList).toHaveBeenNthCalledWith(1, { offset: 0, limit: 100 });
+    expect(client.team.teamGetList).toHaveBeenNthCalledWith(2, { offset: 100, limit: 100 });
+    expect(client.team.teamGetList).toHaveBeenCalledTimes(2);
+    expect(client.team.teamGetTeam).toHaveBeenCalledTimes(101);
+    expect(json).toMatchObject({ organizationId: "org_test", organizationName: "Acme" });
+    expect((json as { teams: unknown[] }).teams).toHaveLength(101);
+  });
+
+  it("asks for a team id when the org has several teams", async () => {
+    delete process.env.BUNDLESOCIAL_TEAM_ID;
+    client.team.teamGetList.mockResolvedValue({
+      items: [TEAM, { ...TEAM, id: "team_other", name: "Other" }],
+      total: 2,
+    });
+    const { json, exitCode } = await runCli(["analytics:summary"]);
+    expect(exitCode).not.toBe(0);
+    expect(json).toMatchObject({
+      error: { code: "TEAM_ID_REQUIRED", details: { teams: [{ id: "team_test" }, { id: "team_other" }] } },
+    });
   });
 
   it("renders a table with --pretty (stdout is not JSON)", async () => {
@@ -1087,5 +1118,19 @@ describe("analytics new commands", () => {
     const { json, exitCode } = await runCli(["analytics:refresh"]);
     expect(exitCode).toBe(1);
     expect(json).toMatchObject({ error: { code: "NO_TARGET" } });
+  });
+});
+
+describe("listAllTeams", () => {
+  it("stops at the page cap and warns", async () => {
+    const { listAllTeams } = await import("../src/context");
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    client.team.teamGetList.mockResolvedValue({ items: [TEAM, TEAM], total: 1000 });
+    // @ts-expect-error the mocked client only implements what the helper needs
+    const teams = await listAllTeams(client, { pageSize: 2, maxPages: 3 });
+    expect(teams).toHaveLength(6);
+    expect(client.team.teamGetList).toHaveBeenCalledTimes(3);
+    expect(String(stderr.mock.calls[0]?.[0])).toContain("stopped listing teams after 3 pages");
+    stderr.mockRestore();
   });
 });

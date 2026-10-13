@@ -11,7 +11,7 @@ export function registerOrgCommands(program: Command): void {
   program
     .command("org:get")
     .summary("fetch your organization")
-    .description("Fetch your organization — id, name, plan limits, feature flags and the list of teams.")
+    .description("Fetch your organization — id, name, plan limits, feature flags. Use `teams:list` for the teams.")
     .action(
       safeAction(async (_opts: unknown, command: Command) => {
         const ctx = createContext(command.optsWithGlobals());

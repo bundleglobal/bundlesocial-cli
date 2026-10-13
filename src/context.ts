@@ -1,5 +1,5 @@
-import { Bundlesocial, OpenAPI } from "bundlesocial";
-import { CliError } from "./output";
+import { Bundlesocial, OpenAPI, type TeamGetListResponse } from "bundlesocial";
+import { CliError, logStatus } from "./output";
 
 export const DEFAULT_API_URL = "https://api.bundle.social";
 export const DASHBOARD_API_KEYS_URL = "https://bundle.social/dashboard/organization/api-keys";
@@ -57,6 +57,34 @@ export function createContext(opts: GlobalOptions): CliContext {
   };
 }
 
+export type TeamListItem = TeamGetListResponse["items"][number];
+
+/** Page size used when listing every team (the API has no hard max; 100 keeps requests small). */
+export const TEAM_LIST_PAGE_SIZE = 100;
+/** Safety cap on pages fetched by `listAllTeams` (100 x 100 = 10,000 teams). */
+export const TEAM_LIST_MAX_PAGES = 100;
+
+/**
+ * Fetch every team in the organization via the paginated `GET /team` endpoint.
+ * Replaces the deprecated `teams` array on `GET /organization` (removed 2026-11-15).
+ */
+export async function listAllTeams(
+  client: Bundlesocial,
+  options: { pageSize?: number; maxPages?: number } = {},
+): Promise<TeamListItem[]> {
+  const pageSize = options.pageSize ?? TEAM_LIST_PAGE_SIZE;
+  const maxPages = options.maxPages ?? TEAM_LIST_MAX_PAGES;
+  const teams: TeamListItem[] = [];
+  for (let page = 0; page < maxPages; page++) {
+    const { items = [], total } = await client.team.teamGetList({ offset: teams.length, limit: pageSize });
+    teams.push(...items);
+    // Stop on a short/empty page too, so a wrong `total` can never loop forever.
+    if (items.length < pageSize || teams.length >= total) return teams;
+  }
+  logStatus(`Warning: stopped listing teams after ${maxPages} pages (${teams.length} teams); results may be incomplete.`);
+  return teams;
+}
+
 /**
  * Determine which team to operate on. Uses `--team-id` / `BUNDLESOCIAL_TEAM_ID`
  * when set; otherwise falls back to the organization's only team. Throws a
@@ -64,8 +92,7 @@ export function createContext(opts: GlobalOptions): CliContext {
  */
 export async function resolveTeamId(ctx: CliContext): Promise<string> {
   if (ctx.explicitTeamId) return ctx.explicitTeamId;
-  const organization = await ctx.client.organization.organizationGetOrganization();
-  const teams = organization.teams ?? [];
+  const teams = await listAllTeams(ctx.client);
   if (teams.length === 1) return teams[0].id;
   if (teams.length === 0) {
     throw new CliError(

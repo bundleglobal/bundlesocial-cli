@@ -360,7 +360,7 @@ bundle-social analytics:summary --from 2026-05-01 --to 2026-06-01 --pretty
 | `teams:create --name <name> [--avatar-url <url>] [--copy-team-id <id>]` | Create a team (or `--data`/`--data-file`). |
 | `teams:update <id> [--name <name>] [--avatar-url <url>]` | Update a team — only the fields you pass change. |
 | `teams:delete <id>` | Delete a team. |
-| `org:get` | Fetch your organization — id, name, plan limits, feature flags, teams. |
+| `org:get` | Fetch your organization — id, name, plan limits, feature flags (list teams with `teams:list`). |
 | `org:usage [--page <n>] [--page-size <n>] [--social-account-type <p>] [--social-account-id <id>]` | Posts / comments / uploads usage plus the per-account imports breakdown (scoped to `--team-id`/`BUNDLESOCIAL_TEAM_ID` when set). |
 | `org:daily-limits --social-account-id <id> [--date <yyyy-mm-dd>]` | One account's daily post/comment allowance — used, limit and remaining for that day. |
 
