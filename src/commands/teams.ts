@@ -43,16 +43,15 @@ export function registerTeamsCommands(program: Command): void {
   program
     .command("teams:create")
     .summary("create a new team")
-    .description("Create a new team in your organization. Pass --name (required), optionally --avatar-url and --copy-team-id to clone another team's connected accounts.")
+    .description("Create a new team in your organization. Pass --name (required) and optionally --avatar-url.")
     .option("--name <name>", "team name")
     .option("--avatar-url <url>", "team avatar URL")
-    .option("--copy-team-id <id>", "id of an existing team to copy social accounts from")
     .option("--data <json>", "advanced: the full request body as JSON; overrides the other options")
     .option("--data-file <path>", "advanced: read the full request body from a JSON file")
     .action(
       safeAction(
         async (
-          opts: { name?: string; avatarUrl?: string; copyTeamId?: string; data?: string; dataFile?: string },
+          opts: { name?: string; avatarUrl?: string; data?: string; dataFile?: string },
           command: Command,
         ) => {
           const ctx = createContext(command.optsWithGlobals());
@@ -65,7 +64,6 @@ export function registerTeamsCommands(program: Command): void {
             requestBody = {
               name: opts.name,
               ...(opts.avatarUrl !== undefined ? { avatarUrl: opts.avatarUrl } : {}),
-              ...(opts.copyTeamId !== undefined ? { copyTeamId: opts.copyTeamId } : {}),
             };
           }
           emitResult(await ctx.client.team.teamCreateTeam({ requestBody }), ctx.pretty);

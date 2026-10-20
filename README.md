@@ -357,7 +357,7 @@ bundle-social analytics:summary --from 2026-05-01 --to 2026-06-01 --pretty
 |---|---|
 | `teams:list [--limit <n>] [--offset <n>] [-q <text>]` | List teams in the organization. |
 | `teams:get <id>` | Fetch a team (org, social accounts, bio). |
-| `teams:create --name <name> [--avatar-url <url>] [--copy-team-id <id>]` | Create a team (or `--data`/`--data-file`). |
+| `teams:create --name <name> [--avatar-url <url>]` | Create a team (or `--data`/`--data-file`). |
 | `teams:update <id> [--name <name>] [--avatar-url <url>]` | Update a team — only the fields you pass change. |
 | `teams:delete <id>` | Delete a team. |
 | `org:get` | Fetch your organization — id, name, plan limits, feature flags (list teams with `teams:list`). |
