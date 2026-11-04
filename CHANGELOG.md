@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.2.2...v1.2.3) (2026-11-04)
+
+
+### Bug Fixes
+
+* describe Pinterest carousel Pins and update the SDK to 2.70 ([8f8db92](https://github.com/bundleglobal/bundlesocial-cli/commit/8f8db9248ac7c3b493a3197196e640fc1a7be993))
+
 ## [1.2.2](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.2.1...v1.2.2) (2026-10-20)
 
 
