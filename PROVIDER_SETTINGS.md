@@ -84,6 +84,7 @@ comments API, not `data`). No analytics surface for X.
 | Field | Type | Notes |
 |---|---|---|
 | `text` | string | ~500 chars. |
+| `isGhostPost` | boolean | Publish a text-only ghost post that Threads archives after 24 hours. |
 | `uploadIds` | string[] | Up to ~10 images, or 1 video. |
 | `mediaItems` | `{ uploadId, altText? }[]` | Per-image alt text (alternative to `uploadIds`). |
 | `topicTag` | string | One topic tag shown in the post header. 1–50 chars, no periods (`.`) or ampersands (`&`). |
@@ -96,7 +97,9 @@ comments API, not `data`). No analytics surface for X.
 | `crosspostToInstagramStoryDarkMode` | boolean | Cross-post the Instagram Story in dark mode. |
 
 Polls, GIFs and link attachments only work on text-only posts — Threads rejects
-them when `uploadIds` is set.
+them when `uploadIds` is set. A ghost post (`isGhostPost: true`) rejects media,
+`poll`, `gif`, `linkAttachment`, `topicTag`, `replyControl`,
+`allowlistedCountryCodes` and `crosspostToInstagramStory`.
 
 ```json
 { "THREADS": { "text": "Quick thought", "topicTag": "shipping", "replyControl": "everyone" } }
@@ -205,7 +208,7 @@ Account types are connected via Facebook or directly via Instagram (`instagramCo
 | `uploadIds` | string[] | One video. |
 | `text` | string | The video **title** (the post `--title` flag also maps here). |
 | `description` | string | Video description. |
-| `thumbnail` | string (URL) | Custom thumbnail (`type: VIDEO`). |
+| `thumbnail` | string (URL) | Custom thumbnail (`type: VIDEO`). Set after YouTube finishes processing the video; the post's external data reports `thumbnailStatus` (`PENDING` / `APPLIED` / `FAILED`). |
 | `privacy` | `PUBLIC` \| `UNLISTED` \| `PRIVATE` | Visibility. |
 | `defaultLanguage` | string (BCP-47) | Language of the title and description, e.g. `en` or `pl`. |
 | `defaultAudioLanguage` | string (BCP-47) | Language of the video's default audio track. |
@@ -321,7 +324,10 @@ via the SDK's `misc.googleBusiness*` methods (`integrations:trigger gbp:location
 | `skipSaveToProfile` | boolean | Spotlight only — don't save the post to the profile. |
 
 Requires a Snapchat Public Profile. There is no comments API surface for
-Snapchat; profile and content analytics are available.
+Snapchat; profile and content analytics are available. Connect with
+`--snapchat-connection-method BUSINESS` to list the Public Profiles of the Snap
+Business organizations the login belongs to, then pick one with
+`integrations:set-channel -p snapchat`.
 
 ```json
 { "SNAPCHAT": { "type": "SPOTLIGHT", "description": "Launch day", "locale": "en_US" } }
