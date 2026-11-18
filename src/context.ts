@@ -59,7 +59,7 @@ export function createContext(opts: GlobalOptions): CliContext {
 
 export type TeamListItem = TeamGetListResponse["items"][number];
 
-/** Page size used when listing every team (the API has no hard max; 100 keeps requests small). */
+/** Page size used when listing every team (the API allows up to 1000; 100 keeps requests small). */
 export const TEAM_LIST_PAGE_SIZE = 100;
 /** Safety cap on pages fetched by `listAllTeams` (100 x 100 = 10,000 teams). */
 export const TEAM_LIST_MAX_PAGES = 100;

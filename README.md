@@ -206,13 +206,14 @@ bundle-social comments:import:action fcm_abc123 --action DELETE --reason spam
 
 ### `integrations:tools` / `integrations:trigger <method>`
 
-Discover values the API needs (subreddit flair ids, YouTube category ids, LinkedIn mention URNs, Instagram locations, Google Business categories, TikTok trending music). `integrations:tools` lists the available helper methods and their params; `integrations:trigger` calls one.
+Discover values the API needs (subreddit flair ids, YouTube category ids, LinkedIn mention URNs, Instagram locations, Google Business categories, TikTok trending music). `integrations:tools` lists the available helper methods and their params; `integrations:trigger` calls one. The TikTok Spark Ads helpers (`tiktok:ad-authorization`, `tiktok:enable-ad-authorization`, `tiktok:extend-ad-authorization`, `tiktok:disable-ad-authorization`) take `postId` or `platformPostId`; all but the first change the post (`writes: true`).
 
 ```bash
 bundle-social integrations:tools
 bundle-social integrations:trigger reddit:flairs --data '{"subreddit":"r/test"}'
 bundle-social integrations:trigger youtube:categories --data '{"regionCode":"US"}'
 bundle-social integrations:trigger linkedin:mentions --data '{"q":"Anthropic","scope":"organizations"}'
+bundle-social integrations:trigger tiktok:enable-ad-authorization --data '{"postId":"<post-id>","authorizationDays":30}'
 ```
 
 ### `platforms:describe [platform]`
@@ -229,9 +230,9 @@ bundle-social platforms:describe                        # every platform
 
 | Command | Description |
 |---|---|
-| `integrations:connect -p <platform> --redirect-url <url>` | Start an OAuth connect flow — returns a `url` to redirect the user to. `--server-url` for Mastodon/Bluesky; `--instagram-connection-method FACEBOOK\|INSTAGRAM`; `--with-business-scope`; `--data`/`--data-file` for the full body. |
+| `integrations:connect -p <platform> --redirect-url <url>` | Start an OAuth connect flow — returns a `url` to redirect the user to. `--server-url` for Mastodon/Bluesky; `--instagram-connection-method FACEBOOK\|INSTAGRAM`; `--snapchat-connection-method PERSONAL\|BUSINESS`; `--with-business-scope`; `--data`/`--data-file` for the full body. |
 | `integrations:disconnect -p <platform>` | Disconnect a social account of that platform from the team. |
-| `integrations:set-channel -p <platform> --channel-id <id>` | Pick the channel/page to post to (FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, GBP). |
+| `integrations:set-channel -p <platform> --channel-id <id>` | Pick the channel/page to post to (FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, GBP, SNAPCHAT Business profiles). |
 | `integrations:unset-channel -p <platform>` | Clear the selected channel/page (keeps authorization). |
 | `integrations:refresh-channels -p <platform>` | Refresh the cached channels (DISCORD, SLACK, REDDIT, PINTEREST, …). |
 | `integrations:portal-link -p <platform...> [--redirect-url <url>] [--expires-in <min>] [--data <json>]` | Create a bundle.social-hosted portal link the user can use to connect/manage accounts. |

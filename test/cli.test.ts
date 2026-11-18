@@ -92,6 +92,10 @@ const mocks = vi.hoisted(() => {
       miscRedditGetSubredditFlairs: vi.fn(),
       miscYoutubeGetVideoCategories: vi.fn(),
       miscLinkedinGetTags: vi.fn(),
+      miscTiktokGetAdAuthorization: vi.fn(),
+      miscTiktokEnableAdAuthorization: vi.fn(),
+      miscTiktokExtendAdAuthorization: vi.fn(),
+      miscTiktokDisableAdAuthorization: vi.fn(),
     },
   };
   return { client };
@@ -692,6 +696,41 @@ describe("integrations:tools / integrations:trigger", () => {
     expect(json).toMatchObject({ error: { code: "MISSING_PARAMS" } });
   });
 
+  it("tiktok ad authorization tools address the post by postId or platformPostId", async () => {
+    client.misc.miscTiktokGetAdAuthorization.mockResolvedValue({ authCode: "#code", status: "NOT_USED" });
+    client.misc.miscTiktokEnableAdAuthorization.mockResolvedValue({ authCode: "#code" });
+    client.misc.miscTiktokExtendAdAuthorization.mockResolvedValue({ authCode: "#code" });
+    client.misc.miscTiktokDisableAdAuthorization.mockResolvedValue({ success: true });
+    const { json, exitCode } = await runCli(["integrations:trigger", "tiktok:ad-authorization", "--data", '{"postId":"post_1"}']);
+    expect(exitCode).toBe(0);
+    expect(client.misc.miscTiktokGetAdAuthorization).toHaveBeenCalledWith({ teamId: "team_test", postId: "post_1" });
+    expect(json).toMatchObject({ authCode: "#code", status: "NOT_USED" });
+    await runCli([
+      "integrations:trigger",
+      "tiktok:enable-ad-authorization",
+      "--data",
+      '{"platformPostId":"7300000000000000000","authorizationDays":60}',
+    ]);
+    expect(client.misc.miscTiktokEnableAdAuthorization).toHaveBeenCalledWith({
+      requestBody: { teamId: "team_test", platformPostId: "7300000000000000000", authorizationDays: 60 },
+    });
+    await runCli(["integrations:trigger", "tiktok:extend-ad-authorization", "--data", '{"postId":"post_1"}']);
+    expect(client.misc.miscTiktokExtendAdAuthorization).toHaveBeenCalledWith({ requestBody: { teamId: "team_test", postId: "post_1" } });
+    await runCli(["integrations:trigger", "tiktok:disable-ad-authorization", "--data", '{"postId":"post_1"}']);
+    expect(client.misc.miscTiktokDisableAdAuthorization).toHaveBeenCalledWith({ requestBody: { teamId: "team_test", postId: "post_1" } });
+  });
+
+  it("tiktok ad authorization tools reject a missing or doubled post reference and bad days", async () => {
+    const none = await runCli(["integrations:trigger", "tiktok:ad-authorization"]);
+    expect(none.exitCode).toBe(1);
+    expect(none.json).toMatchObject({ error: { code: "INVALID_PARAMS" } });
+    const both = await runCli(["integrations:trigger", "tiktok:disable-ad-authorization", "--data", '{"postId":"post_1","platformPostId":"730"}']);
+    expect(both.json).toMatchObject({ error: { code: "INVALID_PARAMS" } });
+    const days = await runCli(["integrations:trigger", "tiktok:enable-ad-authorization", "--data", '{"postId":"post_1","authorizationDays":14}']);
+    expect(days.json).toMatchObject({ error: { code: "INVALID_PARAMS" } });
+    expect(client.misc.miscTiktokEnableAdAuthorization).not.toHaveBeenCalled();
+  });
+
   it("errors on an unknown tool", async () => {
     const { json, exitCode } = await runCli(["integrations:trigger", "bogus:thing"]);
     expect(exitCode).toBe(1);
@@ -838,6 +877,14 @@ describe("integrations social-account ops", () => {
       requestBody: { type: "TWITTER", teamId: "team_test", redirectUrl: "https://app/cb" },
     });
     expect(json).toMatchObject({ url: "https://oauth/x" });
+  });
+
+  it("connect passes the Snapchat connection method", async () => {
+    client.socialAccount.socialAccountConnect.mockResolvedValue({ url: "https://oauth/snap" });
+    await runCli(["integrations:connect", "-p", "snapchat", "--redirect-url", "https://app/cb", "--snapchat-connection-method", "business"]);
+    expect(client.socialAccount.socialAccountConnect).toHaveBeenCalledWith({
+      requestBody: { type: "SNAPCHAT", teamId: "team_test", redirectUrl: "https://app/cb", snapchatConnectionMethod: "BUSINESS" },
+    });
   });
 
   it("disconnect by platform", async () => {

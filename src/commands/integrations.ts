@@ -86,7 +86,7 @@ export function registerIntegrationsCommands(program: Command): void {
     .command("integrations:tools")
     .summary("list available platform helper tools")
     .description(
-      "List the read-only platform helper tools you can call with `integrations:trigger` — e.g. fetch subreddit flairs, YouTube categories/playlists, LinkedIn mentions, Instagram locations, Google Business categories, TikTok trending music. Each entry shows its method id and the params it accepts.",
+      "List the platform helper tools you can call with `integrations:trigger` — e.g. fetch subreddit flairs, YouTube categories/playlists, LinkedIn mentions, Instagram locations, Google Business categories, TikTok trending music, TikTok Spark Ads codes. Each entry shows its method id, the params it accepts and `writes` (true for the few that change a post, e.g. tiktok:enable-ad-authorization).",
     )
     .action(
       safeAction(async (_opts: unknown, command: Command) => {
@@ -99,7 +99,7 @@ export function registerIntegrationsCommands(program: Command): void {
     .command("integrations:trigger")
     .summary("call a platform helper tool")
     .description(
-      "Call one of the platform helper tools (see `integrations:tools`) — for example `integrations:trigger reddit:flairs --data '{\"subreddit\":\"r/test\"}'`. Returns the raw result. Use it to discover values the API needs (flair ids, YouTube category ids, LinkedIn mention URNs, locations, etc.).",
+      "Call one of the platform helper tools (see `integrations:tools`) — for example `integrations:trigger reddit:flairs --data '{\"subreddit\":\"r/test\"}'`. Returns the raw result. Use it to discover values the API needs (flair ids, YouTube category ids, LinkedIn mention URNs, locations, etc.). Methods listed with `writes: true` (TikTok enable/extend/disable ad authorization) change the post on the platform.",
     )
     .argument("<method>", "tool method id, e.g. reddit:flairs (run `integrations:tools` to list them)")
     .option("--data <json>", "JSON object of parameters for the tool, e.g. '{\"subreddit\":\"r/test\"}'")
@@ -125,6 +125,10 @@ export function registerIntegrationsCommands(program: Command): void {
     .option("--tiktok-force-login", "TikTok only (experimental): force the account picker when TikTok keeps reusing the wrong active account")
     .option("--force-browser-oauth", "Instagram only: force browser login on phones")
     .option("--instagram-connection-method <method>", "Instagram only: FACEBOOK | INSTAGRAM")
+    .option(
+      "--snapchat-connection-method <method>",
+      "Snapchat only: PERSONAL (default, the login's own Public Profile) | BUSINESS (Public Profiles of the login's Snap Business organizations; pick one with integrations:set-channel)",
+    )
     .option("--with-business-scope", "Facebook/Instagram/YouTube only: request business/ads scopes (YouTube monetization analytics)")
     .option("--data <json>", "advanced: the full request body as JSON; overrides the other options")
     .option("--data-file <path>", "advanced: read the full request body from a JSON file")
@@ -139,6 +143,7 @@ export function registerIntegrationsCommands(program: Command): void {
             tiktokForceLogin?: boolean;
             forceBrowserOauth?: boolean;
             instagramConnectionMethod?: string;
+            snapchatConnectionMethod?: string;
             withBusinessScope?: boolean;
             data?: string;
             dataFile?: string;
@@ -160,6 +165,9 @@ export function registerIntegrationsCommands(program: Command): void {
                 ...(opts.forceBrowserOauth ? { forceBrowserOAuth: true } : {}),
                 ...(opts.instagramConnectionMethod
                   ? { instagramConnectionMethod: opts.instagramConnectionMethod.trim().toUpperCase() as ConnectBody["instagramConnectionMethod"] }
+                  : {}),
+                ...(opts.snapchatConnectionMethod
+                  ? { snapchatConnectionMethod: opts.snapchatConnectionMethod.trim().toUpperCase() as ConnectBody["snapchatConnectionMethod"] }
                   : {}),
                 ...(opts.withBusinessScope ? { withBusinessScope: true } : {}),
               };
@@ -189,8 +197,8 @@ export function registerIntegrationsCommands(program: Command): void {
   program
     .command("integrations:set-channel")
     .summary("select a channel/page for a social account")
-    .description("Select the channel/page to post to for a social account. Needed for FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE and GOOGLE_BUSINESS. Use --channel-id (see the account's `channels` from integrations:list).")
-    .requiredOption("-p, --platform <platform>", "platform: facebook | instagram | linkedin | youtube | gbp")
+    .description("Select the channel/page to post to for a social account. Needed for FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, GOOGLE_BUSINESS, and SNAPCHAT connected with --snapchat-connection-method BUSINESS. Use --channel-id (see the account's `channels` from integrations:list).")
+    .requiredOption("-p, --platform <platform>", "platform: facebook | instagram | linkedin | youtube | gbp | snapchat")
     .requiredOption("--channel-id <id>", "id of the channel/page to select")
     .action(
       safeAction(async (opts: { platform: string; channelId: string }, command: Command) => {
@@ -208,8 +216,8 @@ export function registerIntegrationsCommands(program: Command): void {
   program
     .command("integrations:unset-channel")
     .summary("clear the selected channel/page for a social account")
-    .description("Clear the selected channel/page for a social account while keeping its authorization. Applies to FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE and GOOGLE_BUSINESS.")
-    .requiredOption("-p, --platform <platform>", "platform: facebook | instagram | linkedin | youtube | gbp")
+    .description("Clear the selected channel/page for a social account while keeping its authorization. Applies to FACEBOOK, INSTAGRAM, LINKEDIN, YOUTUBE, GOOGLE_BUSINESS and SNAPCHAT.")
+    .requiredOption("-p, --platform <platform>", "platform: facebook | instagram | linkedin | youtube | gbp | snapchat")
     .action(
       safeAction(async (opts: { platform: string }, command: Command) => {
         const ctx = createContext(command.optsWithGlobals());
@@ -250,7 +258,7 @@ export function registerIntegrationsCommands(program: Command): void {
     .option("--expires-in <minutes>", "minutes until the link expires (min 5, max 2880)")
     .option(
       "--data <json>",
-      "advanced: extra portal-link options as JSON, merged into the request body — branding (logoUrl, userLogoUrl, userName, goBackButtonText, hidePoweredBy, hideGoBackButton, hideUserLogo, hideUserName, hideLanguageSwitcher, showModalOnConnectSuccess, language, maxSocialAccountsConnected) and the same OAuth flags as integrations:connect (serverUrl, instagramConnectionMethod, withBusinessScope, disableAutoLogin, forceBrowserOAuth, tiktokForceLogin)",
+      "advanced: extra portal-link options as JSON, merged into the request body — branding (logoUrl, userLogoUrl, userName, goBackButtonText, hidePoweredBy, hideGoBackButton, hideUserLogo, hideUserName, hideLanguageSwitcher, showModalOnConnectSuccess, language, maxSocialAccountsConnected) and the same OAuth flags as integrations:connect (serverUrl, instagramConnectionMethod, snapchatConnectionMethod, withBusinessScope, disableAutoLogin, forceBrowserOAuth, tiktokForceLogin)",
     )
     .option("--data-file <path>", "advanced: read extra portal-link options from a JSON file")
     .action(
