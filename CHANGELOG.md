@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.2.3...v1.3.0) (2026-11-18)
+
+
+### Features
+
+* TikTok ad authorization, Threads ghost posts and Snapchat Business profiles ([#3](https://github.com/bundleglobal/bundlesocial-cli/issues/3)) ([ecb29b6](https://github.com/bundleglobal/bundlesocial-cli/commit/ecb29b61168edc4a0a9a71102e38800dbc40a303))
+
 ## [1.2.3](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.2.2...v1.2.3) (2026-11-04)
 
 
