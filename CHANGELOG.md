@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.4.0...v1.5.0) (2026-11-23)
+
+
+### Features
+
+* every public API action through api:actions and api:call ([#5](https://github.com/bundleglobal/bundlesocial-cli/issues/5)) ([d6d9971](https://github.com/bundleglobal/bundlesocial-cli/commit/d6d997143285bb0be0c575245a2922bb4d72c390))
+
 # [1.4.0](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.3.0...v1.4.0) (2026-11-23)
 
 
