@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.5.0...v1.6.0) (2026-11-23)
+
+
+### Features
+
+* local files over 90 MB upload straight to storage ([#6](https://github.com/bundleglobal/bundlesocial-cli/issues/6)) ([54301bc](https://github.com/bundleglobal/bundlesocial-cli/commit/54301bcef44993714b87a33acf7dc5945756db0b))
+
 # [1.5.0](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.4.0...v1.5.0) (2026-11-23)
 
 
