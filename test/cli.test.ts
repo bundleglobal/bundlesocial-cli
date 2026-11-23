@@ -468,6 +468,30 @@ describe("media:upload", () => {
     }
   });
 
+  it("switches to a signed upload above 90 MB", async () => {
+    client.upload.uploadInitLargeUpload.mockResolvedValue({ url: "https://storage.example.com/put", path: "team_test/x.mp4" });
+    client.upload.uploadFinalizeLargeUpload.mockResolvedValue({ id: "up_large", type: "video" });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 200 }));
+    const file = path.join(os.tmpdir(), `bundlesocial-cli-test-${Date.now()}.mp4`);
+    await fs.writeFile(file, Buffer.alloc(91 * 1024 * 1024));
+    try {
+      const { json, exitCode } = await runCli(["media:upload", file]);
+      expect(exitCode).toBe(0);
+      expect(client.upload.uploadCreate).not.toHaveBeenCalled();
+      expect(client.upload.uploadInitLargeUpload).toHaveBeenCalledWith({
+        requestBody: { teamId: "team_test", fileName: path.basename(file), mimeType: "video/mp4" },
+      });
+      expect(fetchSpy).toHaveBeenCalledWith("https://storage.example.com/put", expect.objectContaining({ method: "PUT" }));
+      expect(client.upload.uploadFinalizeLargeUpload).toHaveBeenCalledWith({
+        requestBody: { teamId: "team_test", path: "team_test/x.mp4" },
+      });
+      expect(json).toMatchObject({ id: "up_large" });
+    } finally {
+      fetchSpy.mockRestore();
+      await fs.rm(file, { force: true });
+    }
+  });
+
   it("errors when the local file does not exist", async () => {
     const { json, exitCode } = await runCli(["media:upload", "/no/such/file.png"]);
     expect(exitCode).toBe(1);

@@ -290,7 +290,7 @@ ID=$(bundlesocial media:upload ./hero.png | jq -r .id)
 bundlesocial posts:create --data "{\"TWITTER\":{\"text\":\"hi\",\"uploadIds\":[\"$ID\"]}}"
 ```
 
-For files larger than 90 MB use the chunked flow:
+Local files over 90 MB go straight to storage (init → signed PUT → finalize), so they skip the API's request size limit. `media:upload` and `posts:create -m` switch automatically; `media:upload-large` forces that flow for any size up to 5 GB (jpg, jpeg, png, gif, mp4, mov, pdf):
 
 ```bash
 bundlesocial media:upload-large ./huge-video.mp4   # init → PUT → finalize, returns the upload object
