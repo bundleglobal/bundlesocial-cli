@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.3.0...v1.4.0) (2026-11-23)
+
+
+### Features
+
+* bundlesocial command (bundle-social stays as an alias) ([#4](https://github.com/bundleglobal/bundlesocial-cli/issues/4)) ([9536019](https://github.com/bundleglobal/bundlesocial-cli/commit/9536019c4efb73c90ba28ad5e64ae49aa0e596ed))
+
 # [1.3.0](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.2.3...v1.3.0) (2026-11-18)
 
 
