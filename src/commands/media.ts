@@ -1,22 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { Command } from "commander";
-import type { UploadGetListData, UploadInitLargeUploadData } from "bundlesocial";
+import type { UploadGetListData } from "bundlesocial";
 import { safeAction } from "../program";
 import { createContext, resolveTeamId } from "../context";
-import { CliError, emitResult, logStatus } from "../output";
-import { uploadMediaRef } from "../media";
-
-type LargeUploadMime = NonNullable<UploadInitLargeUploadData["requestBody"]>["mimeType"];
-
-const LARGE_UPLOAD_MIME_BY_EXT: Record<string, LargeUploadMime> = {
-  ".jpg": "image/jpg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".gif": "image/gif",
-  ".mp4": "video/mp4",
-  ".pdf": "application/pdf",
-};
+import { CliError, emitResult } from "../output";
+import { uploadLargeFile, uploadMediaRef } from "../media";
 
 export function registerMediaCommands(program: Command): void {
   program
@@ -89,9 +78,9 @@ export function registerMediaCommands(program: Command): void {
 
   program
     .command("media:upload-large")
-    .summary("upload a large media file (>90 MB)")
+    .summary("upload a media file straight to storage")
     .description(
-      "Upload a large local media file (>90 MB) using the chunked init → PUT → finalize flow. Supported types: jpg, jpeg, png, gif, mp4, pdf. Returns the finalized upload object.",
+      "Upload a local media file straight to storage with the init → signed PUT → finalize flow, at any size up to 5 GB. media:upload and posts:create already switch to it above 90 MB. Supported types: jpg, jpeg, png, gif, mp4, mov, pdf. Returns the finalized upload object.",
     )
     .argument("<path>", "local file path")
     .action(
@@ -105,35 +94,7 @@ export function registerMediaCommands(program: Command): void {
         } catch {
           throw new CliError("MEDIA_NOT_FOUND", `Could not read media file "${filePath}".`, { path: absolutePath });
         }
-        const ext = path.extname(absolutePath).toLowerCase();
-        const mimeType = LARGE_UPLOAD_MIME_BY_EXT[ext];
-        if (!mimeType) {
-          throw new CliError(
-            "UNSUPPORTED_MEDIA_TYPE",
-            `Large uploads only support ${Object.keys(LARGE_UPLOAD_MIME_BY_EXT).join(", ")} files (got "${ext || "no extension"}").`,
-          );
-        }
-        const fileName = path.basename(absolutePath);
-        logStatus(`Initializing large upload: ${absolutePath} (${mimeType}, ${buffer.byteLength} bytes)`);
-        const init = await ctx.client.upload.uploadInitLargeUpload({ requestBody: { teamId, fileName, mimeType } });
-        logStatus(`Uploading ${buffer.byteLength} bytes to storage…`);
-        const putResponse = await fetch(init.url, {
-          method: "PUT",
-          headers: { "Content-Type": mimeType, "Content-Length": String(buffer.byteLength) },
-          body: buffer,
-        });
-        if (!putResponse.ok) {
-          throw new CliError(
-            "LARGE_UPLOAD_FAILED",
-            `Upload to storage failed (HTTP ${putResponse.status} ${putResponse.statusText}).`,
-            { status: putResponse.status },
-          );
-        }
-        logStatus("Finalizing large upload…");
-        emitResult(
-          await ctx.client.upload.uploadFinalizeLargeUpload({ requestBody: { teamId, path: init.path } }),
-          ctx.pretty,
-        );
+        emitResult(await uploadLargeFile(ctx, teamId, absolutePath, buffer), ctx.pretty);
       }),
     );
 }
