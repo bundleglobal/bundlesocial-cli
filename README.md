@@ -19,10 +19,10 @@ npx bundlesocial-cli --help
 
 # global
 npm install -g bundlesocial-cli
-bundle-social --help
+bundlesocial --help
 ```
 
-Requires Node.js 20+.
+Requires Node.js 20+. The older `bundle-social` command still works and runs the same CLI.
 
 ## Authentication
 
@@ -41,20 +41,20 @@ Every env var has a flag equivalent: `--api-key`, `--api-url`, `--team-id` (thes
 Sanity-check your setup any time:
 
 ```bash
-bundle-social doctor
+bundlesocial doctor
 ```
 
 ## Commands
 
-Run `bundle-social --help` or `bundle-social <command> --help` for the authoritative reference.
+Run `bundlesocial --help` or `bundlesocial <command> --help` for the authoritative reference.
 
 ### `integrations:list`
 
 List connected social-media integrations (accounts). Scoped to the team from `--team-id` / `BUNDLESOCIAL_TEAM_ID`; without one it lists every team in the organization.
 
 ```bash
-bundle-social integrations:list
-bundle-social integrations:list --pretty
+bundlesocial integrations:list
+bundlesocial integrations:list --pretty
 ```
 
 ### `posts:create`
@@ -63,24 +63,24 @@ Publish a post immediately to one or more connected integrations.
 
 ```bash
 # text post to X and Bluesky
-bundle-social posts:create -c "Shipped a new thing today 🚀" -i x -i bluesky
+bundlesocial posts:create -c "Shipped a new thing today 🚀" -i x -i bluesky
 
 # image post to Instagram + X, media uploaded automatically (URL or local file)
-bundle-social posts:create -c "New banner" -i instagram -i x -m ./banner.png -m https://cdn.example.com/extra.jpg
+bundlesocial posts:create -c "New banner" -i instagram -i x -m ./banner.png -m https://cdn.example.com/extra.jpg
 
 # TikTok video with the required privacy level
-bundle-social posts:create -c "Behind the scenes" -i tiktok -m ./demo.mp4 \
+bundlesocial posts:create -c "Behind the scenes" -i tiktok -m ./demo.mp4 \
   --platform-settings '{"TIKTOK":{"privacy":"PUBLIC_TO_EVERYONE"}}'
 
 # different options per platform
-bundle-social posts:create -c "Launch day" -i youtube -i tiktok -m ./launch.mp4 \
+bundlesocial posts:create -c "Launch day" -i youtube -i tiktok -m ./launch.mp4 \
   --platform-settings '{"YOUTUBE":{"type":"SHORT","privacyStatus":"PUBLIC","madeForKids":false},"TIKTOK":{"privacy":"PUBLIC_TO_EVERYONE"}}'
 
 # save as a draft instead of publishing
-bundle-social posts:create -c "WIP" -i linkedin --draft
+bundlesocial posts:create -c "WIP" -i linkedin --draft
 
 # full control: pass the post `data` object verbatim (advanced)
-bundle-social posts:create --data '{"REDDIT":{"sr":"r/test","text":"hello","uploadIds":[]}}'
+bundlesocial posts:create --data '{"REDDIT":{"sr":"r/test","text":"hello","uploadIds":[]}}'
 ```
 
 Flags:
@@ -106,8 +106,8 @@ Platform name aliases: `x`/`twitter`, `tiktok`, `youtube`/`yt`, `instagram`/`ig`
 Same as `posts:create`, plus a required `--date`.
 
 ```bash
-bundle-social posts:schedule -c "Tomorrow 9am UTC" -i linkedin -i x -d 2026-06-01T09:00:00Z
-bundle-social posts:schedule -c "Reel drop" -i instagram -m ./reel.mp4 \
+bundlesocial posts:schedule -c "Tomorrow 9am UTC" -i linkedin -i x -d 2026-06-01T09:00:00Z
+bundlesocial posts:schedule -c "Reel drop" -i instagram -m ./reel.mp4 \
   --platform-settings '{"INSTAGRAM":{"type":"REEL","shareToFeed":true}}' -d 2026-06-02T15:30:00Z
 ```
 
@@ -116,10 +116,10 @@ bundle-social posts:schedule -c "Reel drop" -i instagram -m ./reel.mp4 \
 List recent posts for the team, newest first.
 
 ```bash
-bundle-social posts:list --limit 10
-bundle-social posts:list --status SCHEDULED --pretty
-bundle-social posts:list --platform x --platform linkedin --from 2026-05-01 --to 2026-06-01
-bundle-social posts:list -q "launch" --order ASC --order-by postDate
+bundlesocial posts:list --limit 10
+bundlesocial posts:list --status SCHEDULED --pretty
+bundlesocial posts:list --platform x --platform linkedin --from 2026-05-01 --to 2026-06-01
+bundlesocial posts:list -q "launch" --order ASC --order-by postDate
 ```
 
 Flags: `--limit <n>` (default 20), `--offset <n>`, `--status <DRAFT|SCHEDULED|POSTED|ERROR|DELETED|PROCESSING|REVIEW|RETRYING>`, `--platform <platform...>`, `--from <iso>`, `--to <iso>`, `-q, --query <text>`, `--order <ASC|DESC>`, `--order-by <createdAt|updatedAt|postDate|postedDate|deletedAt>`.
@@ -129,9 +129,9 @@ Flags: `--limit <n>` (default 20), `--offset <n>`, `--status <DRAFT|SCHEDULED|PO
 Update an existing post — only the fields you pass change. If you change content/media without `-i`/`-p`, the post's current platforms are reused.
 
 ```bash
-bundle-social posts:update post_abc123 --title "Revised headline" --status DRAFT
-bundle-social posts:update post_abc123 -c "Updated copy" --date 2026-06-05T12:00:00Z
-bundle-social posts:update post_abc123 -i x -i bluesky -c "Now also on Bluesky"
+bundlesocial posts:update post_abc123 --title "Revised headline" --status DRAFT
+bundlesocial posts:update post_abc123 -c "Updated copy" --date 2026-06-05T12:00:00Z
+bundlesocial posts:update post_abc123 -i x -i bluesky -c "Now also on Bluesky"
 ```
 
 Flags: the `posts:create` compose flags (`-c`, `-i/-p`, `-m`, `--platform-settings`, `--data`, `--data-file`, `--title`, `--reference-key`, `--first-comment`) plus `-d, --date <iso>` and `--status <DRAFT|SCHEDULED>`.
@@ -139,9 +139,9 @@ Flags: the `posts:create` compose flags (`-c`, `-i/-p`, `-m`, `--platform-settin
 ### `posts:get <id>` / `posts:delete <id>` / `posts:retry <id>`
 
 ```bash
-bundle-social posts:get post_abc123
-bundle-social posts:delete post_abc123
-bundle-social posts:retry post_abc123     # re-attempt a post that ended in ERROR
+bundlesocial posts:get post_abc123
+bundlesocial posts:delete post_abc123
+bundlesocial posts:retry post_abc123     # re-attempt a post that ended in ERROR
 ```
 
 ### `posts:get-by-reference-key <key>`
@@ -149,8 +149,8 @@ bundle-social posts:retry post_abc123     # re-attempt a post that ended in ERRO
 Look a post up by the `--reference-key` you set when creating it, so you don't have to keep a mapping from your ids to bundle.social's.
 
 ```bash
-bundle-social posts:create -c "Launch" -i x --reference-key campaign-2026-07-launch
-bundle-social posts:get-by-reference-key campaign-2026-07-launch
+bundlesocial posts:create -c "Launch" -i x --reference-key campaign-2026-07-launch
+bundlesocial posts:get-by-reference-key campaign-2026-07-launch
 ```
 
 ### `posts:reconnect-candidates` / `posts:reconnect`
@@ -158,9 +158,9 @@ bundle-social posts:get-by-reference-key campaign-2026-07-launch
 After an account is reconnected, draft and scheduled posts that pointed at the old account can be reattached to the new one.
 
 ```bash
-bundle-social posts:reconnect-candidates -p instagram
-bundle-social posts:reconnect -p instagram                                       # every candidate
-bundle-social posts:reconnect -p instagram --post-id post_abc123 post_def456     # a subset
+bundlesocial posts:reconnect-candidates -p instagram
+bundlesocial posts:reconnect -p instagram                                       # every candidate
+bundlesocial posts:reconnect -p instagram --post-id post_abc123 post_def456     # a subset
 ```
 
 ### `comments:create`
@@ -168,9 +168,9 @@ bundle-social posts:reconnect -p instagram --post-id post_abc123 post_def456    
 Post one or more comments on an existing post. Repeat `-c` to create a chain (the first replies to the post, each subsequent one replies to the previous comment) — useful for X-style threads-via-comments. Comments are supported on TIKTOK, YOUTUBE, INSTAGRAM, FACEBOOK, THREADS, LINKEDIN, REDDIT, MASTODON, DISCORD, SLACK, BLUESKY.
 
 ```bash
-bundle-social comments:create --post-id post_abc123 -c "Great thread 👇"
+bundlesocial comments:create --post-id post_abc123 -c "Great thread 👇"
 # a 3-comment chain on LinkedIn, 1 minute apart, starting tomorrow 9am UTC
-bundle-social comments:create --post-id post_abc123 -i linkedin --date 2026-06-01T09:00:00Z --delay 1 \
+bundlesocial comments:create --post-id post_abc123 -i linkedin --date 2026-06-01T09:00:00Z --delay 1 \
   -c "First reply" -c "Second reply" -c "Third reply"
 ```
 
@@ -179,10 +179,10 @@ Flags: `--post-id <id>` (required), `-c, --content <text...>` (repeatable), `-i,
 ### `comments:list` / `comments:get <id>` / `comments:update <id>` / `comments:delete <id>`
 
 ```bash
-bundle-social comments:list --post-id post_abc123 --status POSTED
-bundle-social comments:get cmt_abc123
-bundle-social comments:update cmt_abc123 --content "edited" -p linkedin
-bundle-social comments:delete cmt_abc123
+bundlesocial comments:list --post-id post_abc123 --status POSTED
+bundlesocial comments:get cmt_abc123
+bundlesocial comments:update cmt_abc123 --content "edited" -p linkedin
+bundlesocial comments:delete cmt_abc123
 ```
 
 `comments:update` mirrors `posts:update`: only the fields you pass change. Flags: `--title`, `--date`, `--status DRAFT|SCHEDULED`, `--content` (+ `-p` for the platforms), `--data` / `--data-file`.
@@ -190,16 +190,16 @@ bundle-social comments:delete cmt_abc123
 Comment on imported content too: `--imported-post-id <id>` targets a post from `posts:import` (pass `-p` since there's no bundle.social post to infer platforms from), and `--fetched-parent-comment-id <id>` replies to a comment from `comments:import`.
 
 ```bash
-bundle-social comments:create --imported-post-id imp_abc123 -p instagram -c "Thanks all 🙏"
-bundle-social comments:create --post-id post_abc123 --fetched-parent-comment-id fcm_abc123 -c "Answering your question…"
+bundlesocial comments:create --imported-post-id imp_abc123 -p instagram -c "Thanks all 🙏"
+bundlesocial comments:create --post-id post_abc123 --fetched-parent-comment-id fcm_abc123 -c "Answering your question…"
 ```
 
 ### `comments:retry <id>` / `comments:import:action <commentId>`
 
 ```bash
-bundle-social comments:retry cmt_abc123                                   # re-attempt a comment in ERROR
-bundle-social comments:import:action fcm_abc123 --action HIDE             # moderate an imported comment
-bundle-social comments:import:action fcm_abc123 --action DELETE --reason spam
+bundlesocial comments:retry cmt_abc123                                   # re-attempt a comment in ERROR
+bundlesocial comments:import:action fcm_abc123 --action HIDE             # moderate an imported comment
+bundlesocial comments:import:action fcm_abc123 --action DELETE --reason spam
 ```
 
 `comments:import:action` works on comments pulled in by `comments:import`. Actions: `DELETE`, `HIDE`, `UNHIDE`, `LIKE`, `UNLIKE`, `APPROVE`, `REJECT` (support varies by platform); add `--ban-author` where the platform allows it.
@@ -209,11 +209,11 @@ bundle-social comments:import:action fcm_abc123 --action DELETE --reason spam
 Discover values the API needs (subreddit flair ids, YouTube category ids, LinkedIn mention URNs, Instagram locations, Google Business categories, TikTok trending music). `integrations:tools` lists the available helper methods and their params; `integrations:trigger` calls one. The TikTok Spark Ads helpers (`tiktok:ad-authorization`, `tiktok:enable-ad-authorization`, `tiktok:extend-ad-authorization`, `tiktok:disable-ad-authorization`) take `postId` or `platformPostId`; all but the first change the post (`writes: true`).
 
 ```bash
-bundle-social integrations:tools
-bundle-social integrations:trigger reddit:flairs --data '{"subreddit":"r/test"}'
-bundle-social integrations:trigger youtube:categories --data '{"regionCode":"US"}'
-bundle-social integrations:trigger linkedin:mentions --data '{"q":"Anthropic","scope":"organizations"}'
-bundle-social integrations:trigger tiktok:enable-ad-authorization --data '{"postId":"<post-id>","authorizationDays":30}'
+bundlesocial integrations:tools
+bundlesocial integrations:trigger reddit:flairs --data '{"subreddit":"r/test"}'
+bundlesocial integrations:trigger youtube:categories --data '{"regionCode":"US"}'
+bundlesocial integrations:trigger linkedin:mentions --data '{"q":"Anthropic","scope":"organizations"}'
+bundlesocial integrations:trigger tiktok:enable-ad-authorization --data '{"postId":"<post-id>","authorizationDays":30}'
 ```
 
 ### `platforms:describe [platform]`
@@ -221,9 +221,9 @@ bundle-social integrations:trigger tiktok:enable-ad-authorization --data '{"post
 Look up the exact per-platform `data.<PLATFORM>` field schema — for posting **and** commenting — so you build a correct `--platform-settings` / `--data` object instead of guessing. Each field reports its name, type, whether it's required and notes; each platform also reports its capabilities (posting / comments / analytics / comment imports) and a ready-to-use example. This command is offline — it needs no API key.
 
 ```bash
-bundle-social platforms:describe reddit                 # one platform, posts + comments
-bundle-social platforms:describe tiktok --operation post # narrow to the post schema
-bundle-social platforms:describe                        # every platform
+bundlesocial platforms:describe reddit                 # one platform, posts + comments
+bundlesocial platforms:describe tiktok --operation post # narrow to the post schema
+bundlesocial platforms:describe                        # every platform
 ```
 
 ### Managing social accounts
@@ -243,9 +243,9 @@ bundle-social platforms:describe                        # every platform
 | `integrations:to-delete [--page <n>] [--page-size <n>]` | List social accounts scheduled for deletion (paginated). |
 
 ```bash
-bundle-social integrations:connect -p instagram --redirect-url https://app.example.com/callback
-bundle-social integrations:set-channel -p youtube --channel-id UC_abc123
-bundle-social integrations:portal-link -p x -p instagram -p linkedin --expires-in 60
+bundlesocial integrations:connect -p instagram --redirect-url https://app.example.com/callback
+bundlesocial integrations:set-channel -p youtube --channel-id UC_abc123
+bundlesocial integrations:portal-link -p x -p instagram -p linkedin --expires-in 60
 ```
 
 ### Importing posts & comments
@@ -274,9 +274,9 @@ bundle-social integrations:portal-link -p x -p instagram -p linkedin --expires-i
 | `posts:csv:rows <importId> [--status SUCCESS\|FAILED]` | Per-row results of a CSV import. |
 
 ```bash
-bundle-social posts:import -p instagram --count 25 --with-analytics
-bundle-social posts:csv --file ./bulk-posts.csv
-bundle-social posts:csv:rows csv_abc123 --status FAILED
+bundlesocial posts:import -p instagram --count 25 --with-analytics
+bundlesocial posts:csv --file ./bulk-posts.csv
+bundlesocial posts:csv:rows csv_abc123 --status FAILED
 ```
 
 ### `media:upload <path-or-url>`
@@ -284,25 +284,25 @@ bundle-social posts:csv:rows csv_abc123 --status FAILED
 Upload a media file (image, video or document) from a local path or a public `https://` URL. Returns the upload object — its `id` can be passed to `posts:create` / `posts:schedule` via `--data`.
 
 ```bash
-bundle-social media:upload ./hero.png
-bundle-social media:upload https://cdn.example.com/promo.mp4
-ID=$(bundle-social media:upload ./hero.png | jq -r .id)
-bundle-social posts:create --data "{\"TWITTER\":{\"text\":\"hi\",\"uploadIds\":[\"$ID\"]}}"
+bundlesocial media:upload ./hero.png
+bundlesocial media:upload https://cdn.example.com/promo.mp4
+ID=$(bundlesocial media:upload ./hero.png | jq -r .id)
+bundlesocial posts:create --data "{\"TWITTER\":{\"text\":\"hi\",\"uploadIds\":[\"$ID\"]}}"
 ```
 
 For files larger than 90 MB use the chunked flow:
 
 ```bash
-bundle-social media:upload-large ./huge-video.mp4   # init → PUT → finalize, returns the upload object
+bundlesocial media:upload-large ./huge-video.mp4   # init → PUT → finalize, returns the upload object
 ```
 
 ### `media:list` / `media:get <id>` / `media:delete <id>` / `media:delete-many --id <id...>`
 
 ```bash
-bundle-social media:list --type video --status UNUSED
-bundle-social media:get up_abc123
-bundle-social media:delete up_abc123
-bundle-social media:delete-many --id up_a --id up_b --id up_c
+bundlesocial media:list --type video --status UNUSED
+bundlesocial media:get up_abc123
+bundlesocial media:delete up_abc123
+bundlesocial media:delete-many --id up_a --id up_b --id up_c
 ```
 
 ### `analytics:post <id>`
@@ -310,9 +310,9 @@ bundle-social media:delete-many --id up_a --id up_b --id up_c
 Engagement metrics for a single post. Add `--raw` for the unprocessed provider payload.
 
 ```bash
-bundle-social analytics:post post_abc123
-bundle-social analytics:post post_abc123 --platform instagram
-bundle-social analytics:post post_abc123 --raw
+bundlesocial analytics:post post_abc123
+bundlesocial analytics:post post_abc123 --platform instagram
+bundlesocial analytics:post post_abc123 --raw
 ```
 
 ### `analytics:account -p <platform>`
@@ -320,8 +320,8 @@ bundle-social analytics:post post_abc123 --raw
 Analytics (follower/engagement snapshots) for a connected social account on the team. Add `--raw` for the unprocessed provider payload.
 
 ```bash
-bundle-social analytics:account -p instagram
-bundle-social analytics:account -p tiktok --raw
+bundlesocial analytics:account -p instagram
+bundlesocial analytics:account -p tiktok --raw
 ```
 
 ### `analytics:bulk -p <platform> --post-id <id...>`
@@ -329,7 +329,7 @@ bundle-social analytics:account -p tiktok --raw
 Analytics for multiple posts in one request (max 60 posts, paginated 20 per page).
 
 ```bash
-bundle-social analytics:bulk -p youtube --post-id post_a --post-id post_b --post-id post_c
+bundlesocial analytics:bulk -p youtube --post-id post_a --post-id post_b --post-id post_c
 ```
 
 ### `analytics:refresh`
@@ -337,8 +337,8 @@ bundle-social analytics:bulk -p youtube --post-id post_a --post-id post_b --post
 Force-refresh analytics — pass `--post-id` to refresh a post, otherwise `-p/--platform` to refresh a connected social account.
 
 ```bash
-bundle-social analytics:refresh --post-id post_abc123
-bundle-social analytics:refresh -p instagram
+bundlesocial analytics:refresh --post-id post_abc123
+bundlesocial analytics:refresh -p instagram
 ```
 
 ### `analytics:summary`
@@ -346,8 +346,8 @@ bundle-social analytics:refresh -p instagram
 Organization-level summary: posts/comments/uploads usage for the org plus the latest analytics snapshot for each connected integration on the team.
 
 ```bash
-bundle-social analytics:summary
-bundle-social analytics:summary --from 2026-05-01 --to 2026-06-01 --pretty
+bundlesocial analytics:summary
+bundlesocial analytics:summary --from 2026-05-01 --to 2026-06-01 --pretty
 ```
 
 (Analytics are not available for X/Twitter, Discord and Slack — those integrations are listed with `analytics: null`.)
@@ -366,9 +366,9 @@ bundle-social analytics:summary --from 2026-05-01 --to 2026-06-01 --pretty
 | `org:daily-limits --social-account-id <id> [--date <yyyy-mm-dd>]` | One account's daily post/comment allowance — used, limit and remaining for that day. |
 
 ```bash
-bundle-social teams:list --pretty
-bundle-social teams:create --name "Marketing"
-bundle-social org:usage
+bundlesocial teams:list --pretty
+bundlesocial teams:create --name "Marketing"
+bundlesocial org:usage
 ```
 
 ### `doctor`
@@ -376,8 +376,8 @@ bundle-social org:usage
 Diagnose the CLI setup: API key, connectivity, organization API access, team selection, connected integrations, posts quota. Always prints a diagnostic JSON; exits non-zero if any check fails.
 
 ```bash
-bundle-social doctor
-bundle-social doctor --pretty
+bundlesocial doctor
+bundlesocial doctor --pretty
 ```
 
 ## Output contract (for scripts & agents)

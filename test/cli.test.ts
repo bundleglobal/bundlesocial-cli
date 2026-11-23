@@ -1181,3 +1181,13 @@ describe("listAllTeams", () => {
     stderr.mockRestore();
   });
 });
+
+describe("client identification", () => {
+  it("sends x-bundle-client so the API can count CLI usage", async () => {
+    const { Bundlesocial } = await import("bundlesocial");
+    const { createClient } = await import("../src/context");
+    createClient("key", "https://api.bundle.social");
+    const options = vi.mocked(Bundlesocial).mock.calls.at(-1)?.[1] as { HEADERS?: Record<string, string> };
+    expect(options.HEADERS?.["x-bundle-client"]).toMatch(/^cli\/\d+\.\d+\.\d+/);
+  });
+});
