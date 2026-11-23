@@ -11,6 +11,7 @@ import { registerAnalyticsCommands } from "./commands/analytics";
 import { registerTeamsCommands } from "./commands/teams";
 import { registerOrgCommands } from "./commands/org";
 import { registerPlatformsCommands } from "./commands/platforms";
+import { registerApiCommands } from "./commands/api";
 import { registerDoctorCommand } from "./commands/doctor";
 
 export const VERSION: string = pkg.version;
@@ -81,6 +82,7 @@ export function buildProgram(): Command {
   registerTeamsCommands(program);
   registerOrgCommands(program);
   registerPlatformsCommands(program);
+  registerApiCommands(program);
   registerDoctorCommand(program);
 
   for (const subcommand of program.commands) {
