@@ -371,6 +371,23 @@ bundlesocial teams:create --name "Marketing"
 bundlesocial org:usage
 ```
 
+### Everything else in the API: `api:actions` / `api:call`
+
+Every public API action (~200) is reachable, including ones without a dedicated command: editing or deleting published posts per platform, YouTube playlists and thumbnails, Google Business profile, reviews and Facebook recommendations, direct messages and automations, credits.
+
+```bash
+bundlesocial api:actions youtube playlist          # search; a narrow search shows parameters
+bundlesocial api:actions --writes                  # only actions that change data
+bundlesocial api:call misc.youtube-edit-video --param postId=post_123 --param title="New title"
+bundlesocial api:call misc.google-business-get-reviews --data '{"teamId":"Acme"}'
+```
+
+Path, query and body fields go side by side in `--data` or repeated `--param key=value` (values are parsed as JSON when they can be). `teamId` takes a team id or name and defaults to `--team-id` or the only team. The action list is generated from the `bundlesocial` SDK (`npm run generate:actions`).
+
+### `credits:balance` / `credits:quote`
+
+Prepaid credit balance for X (Twitter) pay-per-use actions, and a price quote before running them (`--data` / `--param` with the quote fields).
+
 ### `doctor`
 
 Diagnose the CLI setup: API key, connectivity, organization API access, team selection, connected integrations, posts quota. Always prints a diagnostic JSON; exits non-zero if any check fails.

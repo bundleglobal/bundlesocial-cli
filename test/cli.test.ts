@@ -14,7 +14,12 @@ const mocks = vi.hoisted(() => {
       organizationGetPostsUsage: vi.fn(),
       organizationGetCommentsUsage: vi.fn(),
       organizationGetUploadsUsage: vi.fn(),
+      organizationGetMessagesUsage: vi.fn(),
       organizationGetImportsUsage: vi.fn(),
+    },
+    credit: {
+      creditGetCreditBalance: vi.fn(),
+      creditQuoteBillableUsage: vi.fn(),
     },
     team: {
       teamGetTeam: vi.fn(),
@@ -89,6 +94,8 @@ const mocks = vi.hoisted(() => {
       postCsvGetRows: vi.fn(),
     },
     misc: {
+      miscYoutubeEditVideo: vi.fn(),
+      miscGoogleBusinessGetReviews: vi.fn(),
       miscRedditGetSubredditFlairs: vi.fn(),
       miscYoutubeGetVideoCategories: vi.fn(),
       miscLinkedinGetTags: vi.fn(),
@@ -220,6 +227,10 @@ describe("meta", () => {
       "org:get",
       "org:usage",
       "platforms:describe",
+      "api:actions",
+      "api:call",
+      "credits:balance",
+      "credits:quote",
       "doctor",
     ]) {
       expect(stdout).toContain(command);
@@ -856,13 +867,14 @@ describe("org", () => {
     client.organization.organizationGetPostsUsage.mockResolvedValue({ used: 1 });
     client.organization.organizationGetCommentsUsage.mockResolvedValue({ used: 2 });
     client.organization.organizationGetUploadsUsage.mockResolvedValue({ used: 3 });
+    client.organization.organizationGetMessagesUsage.mockResolvedValue({ used: 4 });
     client.organization.organizationGetImportsUsage.mockResolvedValue({ socialAccounts: [] });
     const { json, exitCode } = await runCli(["org:usage", "--social-account-type", "instagram", "--page", "1"]);
     expect(exitCode).toBe(0);
     expect(client.organization.organizationGetImportsUsage).toHaveBeenCalledWith(
       expect.objectContaining({ teamId: "team_test", socialAccountType: "INSTAGRAM", page: 1 }),
     );
-    expect(json).toMatchObject({ posts: { used: 1 }, comments: { used: 2 }, uploads: { used: 3 }, imports: { socialAccounts: [] } });
+    expect(json).toMatchObject({ posts: { used: 1 }, comments: { used: 2 }, uploads: { used: 3 }, messages: { used: 4 }, imports: { socialAccounts: [] } });
   });
 });
 
@@ -1189,5 +1201,55 @@ describe("client identification", () => {
     createClient("key", "https://api.bundle.social");
     const options = vi.mocked(Bundlesocial).mock.calls.at(-1)?.[1] as { HEADERS?: Record<string, string> };
     expect(options.HEADERS?.["x-bundle-client"]).toMatch(/^cli\/\d+\.\d+\.\d+/);
+  });
+});
+
+// --- generic API access ------------------------------------------------------
+
+describe("api:actions / api:call / credits", () => {
+  it("searches actions and shows parameters for a narrow query", async () => {
+    const { json, exitCode } = await runCli(["api:actions", "youtube", "edit", "video"]);
+    expect(exitCode).toBe(0);
+    const actions = (json as { actions: Array<{ id: string; params?: unknown[] }> }).actions;
+    const edit = actions.find((a) => a.id === "misc.youtube-edit-video");
+    expect(edit?.params?.length).toBeGreaterThan(0);
+  });
+
+  it("runs a write action with --param values and the resolved team", async () => {
+    client.misc.miscYoutubeEditVideo.mockResolvedValue({ ok: true });
+    const { json, exitCode } = await runCli([
+      "api:call",
+      "misc.youtube-edit-video",
+      "--param",
+      "postId=post_1",
+      "--param",
+      "title=New title",
+      "--param",
+      'tags=["a","b"]',
+    ]);
+    expect(exitCode).toBe(0);
+    expect(client.misc.miscYoutubeEditVideo).toHaveBeenCalledWith({
+      requestBody: { teamId: "team_test", postId: "post_1", title: "New title", tags: ["a", "b"] },
+    });
+    expect(json).toMatchObject({ ok: true });
+  });
+
+  it("runs a read action with path params from --data", async () => {
+    client.misc.miscGoogleBusinessGetReviews.mockResolvedValue({ items: [] });
+    const { exitCode } = await runCli(["api:call", "misc.google-business-get-reviews", "--data", "{}"]);
+    expect(exitCode).toBe(0);
+    expect(client.misc.miscGoogleBusinessGetReviews).toHaveBeenCalled();
+  });
+
+  it("rejects unknown actions", async () => {
+    const { json, exitCode } = await runCli(["api:call", "misc.nope"]);
+    expect(exitCode).not.toBe(0);
+    expect((json as { error: { code: string } }).error.code).toBe("UNKNOWN_ACTION");
+  });
+
+  it("shows the credit balance", async () => {
+    client.credit.creditGetCreditBalance.mockResolvedValue({ available: 10 });
+    const { json } = await runCli(["credits:balance"]);
+    expect(json).toMatchObject({ available: 10 });
   });
 });

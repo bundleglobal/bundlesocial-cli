@@ -23,7 +23,7 @@ export function registerOrgCommands(program: Command): void {
     .command("org:usage")
     .summary("organization usage / quotas")
     .description(
-      "Organization usage and quotas: posts, comments, uploads, and the per-social-account imports breakdown (paginated). Use --page / --page-size / --social-account-type / --social-account-id to filter the imports breakdown; the imports breakdown is scoped to --team-id / BUNDLESOCIAL_TEAM_ID when set.",
+      "Organization usage and quotas: posts, comments, uploads, direct messages, and the per-social-account imports breakdown (paginated). Use --page / --page-size / --social-account-type / --social-account-id to filter the imports breakdown; the imports breakdown is scoped to --team-id / BUNDLESOCIAL_TEAM_ID when set.",
     )
     .option("--page <n>", "imports breakdown: page number")
     .option("--page-size <n>", "imports breakdown: items per page")
@@ -51,13 +51,14 @@ export function registerOrgCommands(program: Command): void {
               : undefined,
             socialAccountId: opts.socialAccountId,
           };
-          const [posts, comments, uploads, imports] = await Promise.all([
+          const [posts, comments, uploads, messages, imports] = await Promise.all([
             ctx.client.organization.organizationGetPostsUsage().catch(() => null),
             ctx.client.organization.organizationGetCommentsUsage().catch(() => null),
             ctx.client.organization.organizationGetUploadsUsage().catch(() => null),
+            ctx.client.organization.organizationGetMessagesUsage().catch(() => null),
             ctx.client.organization.organizationGetImportsUsage(importsQuery).catch(() => null),
           ]);
-          emitResult({ posts, comments, uploads, imports }, ctx.pretty);
+          emitResult({ posts, comments, uploads, messages, imports }, ctx.pretty);
         },
       ),
     );
