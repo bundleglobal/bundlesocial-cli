@@ -1,4 +1,5 @@
 import { Bundlesocial, OpenAPI, type TeamGetListResponse } from "bundlesocial";
+import pkg from "../package.json";
 import { CliError, logStatus } from "./output";
 
 export const DEFAULT_API_URL = "https://api.bundle.social";
@@ -41,8 +42,9 @@ export function resolveExplicitTeamId(opts: GlobalOptions): string | undefined {
   return opts.teamId ?? process.env.BUNDLESOCIAL_TEAM_ID ?? undefined;
 }
 
+/** `x-bundle-client` lets the API count CLI usage, e.g. "cli/1.2.0". */
 export function createClient(apiKey: string, apiUrl: string): Bundlesocial {
-  return new Bundlesocial(apiKey, { ...OpenAPI, BASE: apiUrl });
+  return new Bundlesocial(apiKey, { ...OpenAPI, BASE: apiUrl, HEADERS: { "x-bundle-client": `cli/${pkg.version}` } });
 }
 
 /** Build the context used by every command action. Throws if no API key is configured. */

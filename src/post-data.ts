@@ -62,7 +62,7 @@ export async function resolveTargetPlatforms(
       if (!account) {
         throw new CliError(
           "INTEGRATION_NOT_FOUND",
-          `No connected integration with id "${id}" in team ${teamId}. Run "bundle-social integrations:list" to see ids, or pass a platform name like "x" or "tiktok".`,
+          `No connected integration with id "${id}" in team ${teamId}. Run "bundlesocial integrations:list" to see ids, or pass a platform name like "x" or "tiktok".`,
           { availableIntegrations: accounts.map((a) => ({ id: a.id, type: a.type, username: a.username })) },
         );
       }
