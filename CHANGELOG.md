@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.6.0...v1.7.0) (2026-11-24)
+
+
+### Features
+
+* SDK 2.72.0 with Instagram post delete, YouTube embeddable and Snapchat import ([#8](https://github.com/bundleglobal/bundlesocial-cli/issues/8)) ([3a76271](https://github.com/bundleglobal/bundlesocial-cli/commit/3a762718075a10ca537e5f54fa8ec644045f8a2b))
+
 # [1.6.0](https://github.com/bundleglobal/bundlesocial-cli/compare/v1.5.0...v1.6.0) (2026-11-23)
 
 
