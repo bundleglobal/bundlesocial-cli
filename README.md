@@ -252,7 +252,7 @@ bundlesocial integrations:portal-link -p x -p instagram -p linkedin --expires-in
 
 | Command | Description |
 |---|---|
-| `posts:import -p <platform> --count <n> [--with-analytics] [--import-carousels] [--surface <s>] [--media-type <t>]` | Start an async import of an account's recent posts (post history) into bundle.social. Platforms: FACEBOOK, INSTAGRAM, THREADS, TIKTOK, YOUTUBE, LINKEDIN, PINTEREST, REDDIT, MASTODON, BLUESKY. |
+| `posts:import -p <platform> --count <n> [--with-analytics] [--import-carousels] [--surface <s>] [--media-type <t>]` | Start an async import of an account's recent posts (post history) into bundle.social. Platforms: FACEBOOK, INSTAGRAM, THREADS, TIKTOK, YOUTUBE, LINKEDIN, PINTEREST, REDDIT, MASTODON, BLUESKY, TWITTER, SNAPCHAT. |
 | `posts:imports [-p <platform>]` | List post-history import statuses for the team. |
 | `posts:import:get <importId>` | Fetch a single post-history import. |
 | `posts:import:posts -p <platform> [--limit <n>] [--offset <n>]` | List imported posts (with analytics) for an account. |

@@ -62,7 +62,7 @@ All commands accept the global flags `--api-key <key>`, `--api-url <url>`, `--te
 | `posts:get-by-reference-key <key>` | Fetch a post by the `--reference-key` you set on it, instead of its bundle.social id. |
 | `posts:reconnect-candidates -p <platform> [--limit <n>] [--offset <n>]` | List draft/scheduled posts that lost their social account after a disconnect. |
 | `posts:reconnect -p <platform> [--post-id <id...>]` | Reattach those posts to the newly connected account of that platform (all candidates by default). |
-| `posts:import -p <platform> --count <n> [--with-analytics] [--import-carousels] [--surface <s>] [--media-type <t>]` | Start an async import of an account's recent posts (post history). Platforms: FACEBOOK, INSTAGRAM, THREADS, TIKTOK, YOUTUBE, LINKEDIN, PINTEREST, REDDIT, MASTODON, BLUESKY. |
+| `posts:import -p <platform> --count <n> [--with-analytics] [--import-carousels] [--surface <s>] [--media-type <t>]` | Start an async import of an account's recent posts (post history). Platforms: FACEBOOK, INSTAGRAM, THREADS, TIKTOK, YOUTUBE, LINKEDIN, PINTEREST, REDDIT, MASTODON, BLUESKY, TWITTER, SNAPCHAT. |
 | `posts:imports [-p <platform>]` / `posts:import:get <importId>` | List post-history import statuses / fetch one. |
 | `posts:import:posts -p <platform> [--limit <n>] [--offset <n>]` | List imported posts (with analytics) for an account. |
 | `posts:import:delete-posts --id <id...>` / `posts:import:retry <importId>` | Bulk-delete imported posts / retry a failed import. |

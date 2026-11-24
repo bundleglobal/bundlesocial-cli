@@ -17,7 +17,7 @@ export function registerPostImportsCommands(program: Command): void {
     .command("posts:import")
     .summary("start a post-history import")
     .description(
-      "Start an async import of a connected account's recent posts (post history) into bundle.social, optionally with analytics. Supported: FACEBOOK, INSTAGRAM, THREADS, TIKTOK, YOUTUBE, LINKEDIN, PINTEREST, REDDIT, MASTODON, BLUESKY.",
+      "Start an async import of a connected account's recent posts (post history) into bundle.social, optionally with analytics. Supported: FACEBOOK, INSTAGRAM, THREADS, TIKTOK, YOUTUBE, LINKEDIN, PINTEREST, REDDIT, MASTODON, BLUESKY, TWITTER, SNAPCHAT.",
     )
     .requiredOption("-p, --platform <platform>", "platform to import from (e.g. instagram, tiktok)")
     .requiredOption("--count <n>", "how many recent posts to import")

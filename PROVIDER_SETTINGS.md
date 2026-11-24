@@ -215,6 +215,7 @@ Account types are connected via Facebook or directly via Instagram (`instagramCo
 | `madeForKids` | boolean | Required-ish — YouTube needs you to declare this. |
 | `containsSyntheticMedia` | boolean | Mark AI-generated content. |
 | `hasPaidProductPlacement` | boolean | Declare paid placements. |
+| `embeddable` | boolean | Whether other websites can embed the video. Leave it out to keep YouTube's default. |
 
 (There's no `categoryId` in the post `data` itself — fetch categories with
 `integrations:trigger youtube:categories --data '{"regionCode":"US"}'`; playlist
